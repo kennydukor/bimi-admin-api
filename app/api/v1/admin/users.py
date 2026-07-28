@@ -1,0 +1,164 @@
+"""Users — Super Admin only. Invite, role, suspend/reinstate, remove."""
+from __future__ import annotations
+
+import secrets
+import uuid
+from datetime import datetime, timedelta, timezone
+
+import asyncpg
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.security import CurrentUser, require_super_admin
+from app.db.session import db
+from app.schemas.admin import (
+    InviteUserRequest,
+    Paginated,
+    SetRoleRequest,
+    User,
+)
+from app.services import audit
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+PAGE_SIZE = 20
+
+
+def _user_out(row: asyncpg.Record) -> User:
+    return User(
+        id=str(row["id"]),
+        email=row["email"],
+        full_name=row["full_name"],
+        role=row["role"],
+        status=row["status"],
+        created_at=row["created_at"].isoformat(),
+        last_login_at=row["last_login_at"].isoformat() if row["last_login_at"] else None,
+    )
+
+
+async def _find(conn, user_id: str) -> asyncpg.Record:
+    row = await conn.fetchrow("SELECT * FROM admin_users WHERE id = $1", uuid.UUID(user_id))
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+    return row
+
+
+@router.get("", response_model=Paginated[User])
+async def list_users(
+    page: int = Query(1, ge=1),
+    search: str | None = None,
+    conn: asyncpg.Connection = Depends(db),
+    _: CurrentUser = Depends(require_super_admin),
+):
+    where, args = "", []
+    if search:
+        args.append(f"%{search}%")
+        where = "WHERE full_name ILIKE $1 OR email ILIKE $1"
+    total = await conn.fetchval(f"SELECT count(*) FROM admin_users {where}", *args)
+    rows = await conn.fetch(
+        f"SELECT * FROM admin_users {where} ORDER BY created_at DESC "
+        f"LIMIT ${len(args)+1} OFFSET ${len(args)+2}",
+        *args, PAGE_SIZE, (page - 1) * PAGE_SIZE,
+    )
+    return Paginated[User](
+        items=[_user_out(r) for r in rows],
+        total=int(total or 0), page=page, page_size=PAGE_SIZE,
+    )
+
+
+@router.post("", response_model=User, status_code=status.HTTP_201_CREATED)
+async def invite_user(
+    body: InviteUserRequest,
+    conn: asyncpg.Connection = Depends(db),
+    admin: CurrentUser = Depends(require_super_admin),
+):
+    email = body.email.lower().strip()
+    exists = await conn.fetchval("SELECT 1 FROM admin_users WHERE email = $1", email)
+    if exists:
+        raise HTTPException(status.HTTP_409_CONFLICT, "A user with that email already exists.")
+
+    row = await conn.fetchrow(
+        """
+        INSERT INTO admin_users (email, full_name, role, status)
+        VALUES ($1,$2,$3,'pending_verification')
+        RETURNING *
+        """,
+        email, body.full_name, body.role,
+    )
+    # Issue a verification token (email delivery handled elsewhere).
+    token = secrets.token_urlsafe(32)
+    await conn.execute(
+        """INSERT INTO admin_auth_tokens (token, user_id, purpose, expires_at)
+           VALUES ($1,$2,'verify_email',$3)""",
+        token, row["id"], datetime.now(timezone.utc) + timedelta(days=7),
+    )
+    await audit.record(
+        conn, actor=admin, action="add_user", target=email,
+        detail="Super Admin" if body.role == "super_admin" else "Regular Admin",
+    )
+    return _user_out(row)
+
+
+@router.patch("/{user_id}", response_model=User)
+async def set_role(
+    user_id: str,
+    body: SetRoleRequest,
+    conn: asyncpg.Connection = Depends(db),
+    admin: CurrentUser = Depends(require_super_admin),
+):
+    await _find(conn, user_id)
+    row = await conn.fetchrow(
+        "UPDATE admin_users SET role = $1 WHERE id = $2 RETURNING *",
+        body.role, uuid.UUID(user_id),
+    )
+    await audit.record(
+        conn, actor=admin, action="add_user", target=row["email"],
+        detail=f"Role: {'Super Admin' if body.role=='super_admin' else 'Regular Admin'}",
+    )
+    return _user_out(row)
+
+
+@router.post("/{user_id}/suspend", response_model=User)
+async def suspend_user(
+    user_id: str,
+    conn: asyncpg.Connection = Depends(db),
+    admin: CurrentUser = Depends(require_super_admin),
+):
+    if user_id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot suspend yourself.")
+    await _find(conn, user_id)
+    row = await conn.fetchrow(
+        "UPDATE admin_users SET status='suspended' WHERE id=$1 RETURNING *",
+        uuid.UUID(user_id),
+    )
+    # Kill their live sessions immediately.
+    await conn.execute("DELETE FROM admin_sessions WHERE user_id = $1", uuid.UUID(user_id))
+    await audit.record(conn, actor=admin, action="suspend_user", target=row["email"])
+    return _user_out(row)
+
+
+@router.post("/{user_id}/reinstate", response_model=User)
+async def reinstate_user(
+    user_id: str,
+    conn: asyncpg.Connection = Depends(db),
+    admin: CurrentUser = Depends(require_super_admin),
+):
+    await _find(conn, user_id)
+    row = await conn.fetchrow(
+        "UPDATE admin_users SET status='active' WHERE id=$1 RETURNING *",
+        uuid.UUID(user_id),
+    )
+    await audit.record(conn, actor=admin, action="add_user", target=row["email"], detail="Reinstated")
+    return _user_out(row)
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_user(
+    user_id: str,
+    conn: asyncpg.Connection = Depends(db),
+    admin: CurrentUser = Depends(require_super_admin),
+):
+    if user_id == admin.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You cannot remove yourself.")
+    row = await _find(conn, user_id)
+    await conn.execute("DELETE FROM admin_users WHERE id = $1", uuid.UUID(user_id))
+    await audit.record(conn, actor=admin, action="remove_user", target=row["email"])

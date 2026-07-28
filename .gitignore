@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+local_settings.py
+instance/
+lib/
+*.sqlite3
+
+# Django
+*.log
+media/
+staticfiles/
+migrations/*
+!migrations/__init__.py
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# pytest
+.pytest_cache/
+
+# coverage
+.coverage
+htmlcov/
+
+# dotenv
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Build
+dist/
+build/
+
+# Postman collections
+# Ignore exported Postman collection files (json) and workspace exports
+# *.postman_collection.json
+# *.postman_collection
+# Postman_collection*.json
+# postman_collection*.json
+# Postman/*.json
+
+# Misc
+coverage.xml
+celerybeat-schedule
+wheelhouse/

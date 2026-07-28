@@ -1,0 +1,3509 @@
+{
+  "federal_faac_allocation": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "allocation",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": [
+      "year",
+      "month"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "year",
+      "month"
+    ]
+  },
+  "federal_macroeconomic_data": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_name",
+        "sql_type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "value",
+        "sql_type": "numeric",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": "USD",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "indicator_code",
+        "ref_table": "indicators",
+        "ref_column": "indicator_code"
+      }
+    ],
+    "natural_key": null,
+    "is_reference": false,
+    "period_key": [
+      "indicator_code",
+      "year"
+    ]
+  },
+  "federal_contractor_payments": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "payment_id",
+        "sql_type": "varchar(50)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "organization_name",
+        "sql_type": "text",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "contractor_name",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "payment_description",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "payment_date",
+        "sql_type": "date",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "amount",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "search_vector",
+        "sql_type": "tsvector",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "payment_id"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "payment_id"
+    ]
+  },
+  "federal_budget_insertions": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "insertion_type",
+        "sql_type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "frequency",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "amount",
+        "sql_type": "numeric",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": null,
+    "is_reference": false,
+    "period_key": [
+      "year"
+    ]
+  },
+  "federal_budget_expenditure": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "approved_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "actual_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "indicator_code",
+        "ref_table": "indicators",
+        "ref_column": "indicator_code"
+      }
+    ],
+    "natural_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "federal_mda_project_expenditures": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "project_code",
+        "sql_type": "varchar(50)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "project_name",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "project_status",
+        "sql_type": "varchar(50)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "amount",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "mda",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "sector_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "source",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": "1",
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "search_vector",
+        "sql_type": "tsvector",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "sector_code",
+        "ref_table": "sectors",
+        "ref_column": "sector_code"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": null,
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "sector_code",
+      "mda",
+      "project_code",
+      "year"
+    ]
+  },
+  "crude_oil_production": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "total_production",
+        "sql_type": "numeric(15,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "average_daily_production",
+        "sql_type": "numeric(12,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "unit",
+        "sql_type": "text",
+        "nullable": true,
+        "default": "barrel",
+        "enum": null,
+        "ui_type": "text"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "currencies": {
+    "columns": [
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "currency_name",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "currency_symbol",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "country",
+        "sql_type": "varchar(100)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "currency_code",
+    "fks": [],
+    "natural_key": null,
+    "is_reference": true,
+    "period_key": null
+  },
+  "gas_production": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "total_production",
+        "sql_type": "numeric(15,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "unit",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "lga_faac_allocation": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "lga_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "allocation",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "lga_code",
+        "ref_table": "lgas",
+        "ref_column": "lga_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "lga_code",
+      "year",
+      "month"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "lga_code",
+      "year",
+      "month"
+    ]
+  },
+  "lgas": {
+    "columns": [
+      {
+        "name": "lga_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "lga_name",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "lga_code",
+    "fks": [
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": null,
+    "is_reference": true,
+    "period_key": null
+  },
+  "federal_sectoral_expenditure": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_name",
+        "sql_type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "value",
+        "sql_type": "numeric",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "sector_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "sector_code",
+        "ref_table": "sectors",
+        "ref_column": "sector_code"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": null,
+    "is_reference": false,
+    "period_key": [
+      "sector_code",
+      "year"
+    ]
+  },
+  "national_labour_force": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "labour_force",
+        "sql_type": "int8",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "employed",
+        "sql_type": "int8",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "unemployed",
+        "sql_type": "int8",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "unemployment_rate_percentage",
+        "sql_type": "numeric(5,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "underemployment_rate_percentage",
+        "sql_type": "numeric(5,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "national_economic_data": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "value",
+        "sql_type": "numeric(20,4)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "indicator_code",
+        "ref_table": "indicators",
+        "ref_column": "indicator_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "indicator_code",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "indicator_code",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "sectors": {
+    "columns": [
+      {
+        "name": "sector_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "sector_name",
+        "sql_type": "varchar(150)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "description",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": false,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "sql_type": "timestamp",
+        "nullable": false,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "sector_code",
+    "fks": [],
+    "natural_key": [
+      "sector_code"
+    ],
+    "is_reference": true,
+    "period_key": null
+  },
+  "population": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "population_count",
+        "sql_type": "int8",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year"
+    ]
+  },
+  "states": {
+    "columns": [
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_name",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "region",
+        "sql_type": "varchar(50)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "capital",
+        "sql_type": "varchar(100)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "state_code",
+    "fks": [],
+    "natural_key": [
+      "state_name"
+    ],
+    "is_reference": true,
+    "period_key": null
+  },
+  "state_fiscal_sustainability_ranking": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "fiscal_transparency_ranking",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "fiscal_sustainability_ranking",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "debt_sustainability_ranking",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year"
+    ]
+  },
+  "state_women_affairs_budget": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "budget_type",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "actual",
+          "approved"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "budget_amount",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "budget_type"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "budget_type"
+    ]
+  },
+  "state_debt": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "debt_type",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "domestic",
+          "external",
+          "total"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "debt_amount",
+        "sql_type": "numeric(20,2)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "debt_type",
+      "currency_code"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "debt_type",
+      "currency_code"
+    ]
+  },
+  "state_labour_force": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "labour_force",
+        "sql_type": "int8",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "employed",
+        "sql_type": "int8",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "unemployed",
+        "sql_type": "int8",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "unemployment_rate_percentage",
+        "sql_type": "numeric(5,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "underemployment_rate_percentage",
+        "sql_type": "numeric(5,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "federal_revenue": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "approved_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "actual_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "indicator_code",
+        "ref_table": "indicators",
+        "ref_column": "indicator_code"
+      }
+    ],
+    "natural_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "sources": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "source",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "acronym",
+        "sql_type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [],
+    "natural_key": [
+      "source"
+    ],
+    "is_reference": true,
+    "period_key": null
+  },
+  "state_budget_expenditure": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "budget_type",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "actual",
+          "approved"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "personnel_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "overhead_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "capital_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "other_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "budget_type"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "budget_type"
+    ]
+  },
+  "state_faac_allocation": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "allocation",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month"
+    ]
+  },
+  "states_internally_generated_revenue": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "igr_amount",
+        "sql_type": "numeric(20,2)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "national_debt": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "debt_type",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "domestic",
+          "external",
+          "total"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "debt_amount",
+        "sql_type": "numeric(20,2)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": [
+      "year",
+      "month",
+      "quarter",
+      "debt_type",
+      "currency_code"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "year",
+      "month",
+      "quarter",
+      "debt_type",
+      "currency_code"
+    ]
+  },
+  "federal_capital_budget_utilization": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "mda",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "sector_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "budget_appropriation",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "amount_released",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "utilization",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source",
+        "sql_type": "varchar(255)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "sector_code",
+        "ref_table": "sectors",
+        "ref_column": "sector_code"
+      }
+    ],
+    "natural_key": [
+      "mda",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "mda",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "zonal_intervention_projects": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "project_code",
+        "sql_type": "varchar(50)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "project_title",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "status",
+        "sql_type": "varchar(100)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "agency",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "ministry",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "amount_allocated",
+        "sql_type": "numeric",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "search_vector",
+        "sql_type": "tsvector",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": null,
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "project_code",
+      "year"
+    ]
+  },
+  "federal_financing": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "approved_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "actual_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "indicator_code",
+        "ref_table": "indicators",
+        "ref_column": "indicator_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "state_total_revenue": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "total_revenue",
+        "sql_type": "numeric(20,2)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter"
+    ]
+  },
+  "indicators": {
+    "columns": [
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_name",
+        "sql_type": "varchar(255)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "category",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "revenue",
+          "expenditure",
+          "financing",
+          "economic"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "description",
+        "sql_type": "text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "synonyms",
+        "sql_type": "_text",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "updated_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      },
+      {
+        "name": "unit",
+        "sql_type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "value_type",
+        "sql_type": "varchar(20)",
+        "nullable": true,
+        "default": null,
+        "enum": [
+          "currency",
+          "percentage",
+          "count",
+          "ratio",
+          "index",
+          "volume"
+        ],
+        "ui_type": "select"
+      }
+    ],
+    "pk": "indicator_code",
+    "fks": [],
+    "natural_key": [
+      "indicator_name",
+      "category"
+    ],
+    "is_reference": true,
+    "period_key": null
+  },
+  "cost_of_healthy_diet": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "area_type",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "rural",
+          "urban"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "cost",
+        "sql_type": "numeric(10,2)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "area_type"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "area_type"
+    ]
+  },
+  "state_sectoral_budget_expenditure": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "state_code",
+        "sql_type": "varchar(10)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "budget_type",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "actual",
+          "approved"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "sector_code",
+        "sql_type": "varchar(20)",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "personnel_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "overhead_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "capital_expenditure",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "sector_code",
+        "ref_table": "sectors",
+        "ref_column": "sector_code"
+      },
+      {
+        "column": "state_code",
+        "ref_table": "states",
+        "ref_column": "state_code"
+      }
+    ],
+    "natural_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "budget_type",
+      "sector_code"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "state_code",
+      "year",
+      "month",
+      "quarter",
+      "budget_type",
+      "sector_code"
+    ]
+  },
+  "federal_revenue_expenditure_budget_totals": {
+    "columns": [
+      {
+        "name": "id",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": "SEQUENCE",
+        "enum": null,
+        "ui_type": "id"
+      },
+      {
+        "name": "indicator_code",
+        "sql_type": "varchar(100)",
+        "nullable": false,
+        "default": null,
+        "enum": [
+          "EXP_TOTAL",
+          "REV_TOTAL"
+        ],
+        "ui_type": "select"
+      },
+      {
+        "name": "source_id",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "number"
+      },
+      {
+        "name": "year",
+        "sql_type": "int4",
+        "nullable": false,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "month",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "quarter",
+        "sql_type": "int4",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "select"
+      },
+      {
+        "name": "approved_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "actual_value",
+        "sql_type": "numeric(20,2)",
+        "nullable": true,
+        "default": null,
+        "enum": null,
+        "ui_type": "currency"
+      },
+      {
+        "name": "currency_code",
+        "sql_type": "varchar(3)",
+        "nullable": true,
+        "default": "NGN",
+        "enum": null,
+        "ui_type": "text"
+      },
+      {
+        "name": "created_at",
+        "sql_type": "timestamp",
+        "nullable": true,
+        "default": "now",
+        "enum": null,
+        "ui_type": "datetime"
+      }
+    ],
+    "pk": "id",
+    "fks": [
+      {
+        "column": "indicator_code",
+        "ref_table": "indicators",
+        "ref_column": "indicator_code"
+      },
+      {
+        "column": "currency_code",
+        "ref_table": "currencies",
+        "ref_column": "currency_code"
+      },
+      {
+        "column": "source_id",
+        "ref_table": "sources",
+        "ref_column": "id"
+      }
+    ],
+    "natural_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ],
+    "is_reference": false,
+    "period_key": [
+      "indicator_code",
+      "source_id",
+      "year",
+      "month",
+      "quarter"
+    ]
+  }
+}
