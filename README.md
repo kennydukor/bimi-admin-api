@@ -109,4 +109,3 @@ Every table and column name that reaches SQL is validated against the schema
 registry first; every value is a bound parameter. An unknown table or column is
 rejected before any query is built, which is what makes the generic row/upload
 endpoints injection-safe.
-# bimi-admin-api

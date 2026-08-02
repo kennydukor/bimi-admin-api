@@ -33,10 +33,7 @@ async def seed(conn: asyncpg.Connection) -> None:
 
     demo = [
         ("demlabz@gmail.com", "John Doe", "super_admin", "active", "changeme123"),
-        ("ngozi.okonkwo@bimi.gov.ng", "Ngozi Okonkwo", "super_admin", "active", "changeme123"),
-        ("ibrahim.musa@bimi.gov.ng", "Ibrahim Musa", "regular_admin", "active", "changeme123"),
-        ("funke.adeyemi@bimi.gov.ng", "Funke Adeyemi", "regular_admin", "suspended", "changeme123"),
-        ("amina.suleiman@bimi.gov.ng", "Amina Suleiman", "regular_admin", "pending_verification", None),
+        ("kennydukor@gmail.com", "Kenechi Dukor", "super_admin", "active", "changeme123"),
     ]
     for email, name, role, status, pw in demo:
         await conn.execute(
