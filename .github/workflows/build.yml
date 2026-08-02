@@ -30,7 +30,6 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile all modules
-        working-directory: backend
         run: python -m compileall -q app scripts
 
   build:
@@ -45,8 +44,7 @@ jobs:
       - name: Build image (load locally, no push)
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
-          push: false
+          context: .
           load: true                 # make the image available to the next step
           tags: bimi-admin-api:ci
           cache-from: type=gha
