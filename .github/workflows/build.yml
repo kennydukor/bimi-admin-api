@@ -1,0 +1,85 @@
+# ============================================================
+# Bimi Admin API — build / CI
+#
+# Runs on pull requests and on branch pushes (not main). It proves the code
+# compiles AND that the Docker image actually builds and boots — but it never
+# pushes to a registry or deploys. That's the deploy workflow's job, on main.
+#
+# Flow:
+#   check  → compile every module (fast fail)
+#   build  → build the image with Buildx (cached), load it locally
+#   smoke  → run the container with NO database and assert /health comes up
+#            healthy reporting 35 tables (the app falls back to the committed
+#            schema snapshot when the DB is absent, so this needs no services)
+# ============================================================
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]      # main is handled by deploy.yml
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile all modules
+        working-directory: backend
+        run: python -m compileall -q app scripts
+
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (load locally, no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          load: true                 # make the image available to the next step
+          tags: bimi-admin-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test — container boots and /health is healthy
+        run: |
+          # Run with no DATABASE_URL reachable; the app serves from the schema
+          # snapshot, so /health must still return 35 tables.
+          docker run -d --name bimi_ci -p 8000:8000 \
+            -e SESSION_SECRET=ci-not-secret \
+            -e DATABASE_URL=postgresql://none:none@127.0.0.1:5/none \
+            bimi-admin-api:ci
+
+          echo "waiting for /health…"
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:8000/health > health.json 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          echo "response: $(cat health.json)"
+          # Assert status ok and 35 tables discovered. Greps allow optional
+          # whitespace, since FastAPI emits '{"status": "ok", "tables": 35}'.
+          grep -Eq '"status":[[:space:]]*"ok"' health.json
+          grep -Eq '"tables":[[:space:]]*35' health.json
+          echo "smoke test passed ✔"
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs bimi_ci || true
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f bimi_ci || true

@@ -1,0 +1,160 @@
+# ============================================================
+# Bimi Admin API — CI/CD
+#
+# On push to main (and on tags):
+#   1. check    — compile every module (fast guard against broken code)
+#   2. build    — build the Docker image and push it to GHCR, tagged with the
+#                 commit SHA and (on the default branch) `latest`
+#   3. deploy   — SSH to the Docker host, run migrations once, then roll the
+#                 service to the new image
+#
+# GHCR needs no extra secrets — the built-in GITHUB_TOKEN can push to
+# ghcr.io/<owner>/<repo>. The deploy job needs the SSH_* and app secrets listed
+# under `deploy` below; if they're absent the job is skipped, so build/push
+# still works out of the box.
+# ============================================================
+name: deploy-api
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:      # allow manual runs from the Actions tab
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # ghcr.io/<owner>/<repo>
+
+jobs:
+  # ── 1. static check ───────────────────────────────────────
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile all modules
+        working-directory: backend
+        run: python -m compileall -q app scripts
+
+  # ── 2. build & push image ─────────────────────────────────
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write        # required to push to GHCR
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 3. deploy over SSH ────────────────────────────────────
+  # Runs only if a deploy host is configured. Set these repository secrets:
+  #   SSH_HOST, SSH_USER, SSH_KEY            (connection)
+  #   DATABASE_URL, SESSION_SECRET, CORS_ORIGINS,
+  #   S3_BUCKET, S3_REGION,
+  #   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY   (app config)
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Skip if no deploy host
+        id: gate
+        run: |
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "No SSH_HOST secret set — skipping deploy (image is built & pushed)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Copy compose file to server
+        if: steps.gate.outputs.run == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: docker-compose.prod.yml
+          target: /opt/bimi-admin
+
+      - name: Deploy
+        if: steps.gate.outputs.run == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: IMAGE
+          script: |
+            set -e
+            cd /opt/bimi-admin
+
+            # Write the runtime env the compose file reads. Secrets come from
+            # GitHub; nothing sensitive is committed to the repo.
+            cat > .env <<EOF
+            IMAGE=${IMAGE}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+            CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
+            S3_BUCKET=${{ secrets.S3_BUCKET }}
+            S3_REGION=${{ secrets.S3_REGION }}
+            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            WEB_CONCURRENCY=4
+            EOF
+            chmod 600 .env
+
+            # Authenticate the host's Docker to GHCR to pull the private image.
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            docker compose -f docker-compose.prod.yml pull
+
+            # Run migrations once, as a throwaway container, before rolling the
+            # service. Idempotent (CREATE TABLE IF NOT EXISTS).
+            docker compose -f docker-compose.prod.yml run --rm \
+              -e RUN_MIGRATIONS=1 api python -m scripts.init_db --migrate
+
+            # Roll the long-running service to the new image.
+            docker compose -f docker-compose.prod.yml up -d
+
+            # Prune old images to keep the host tidy.
+            docker image prune -f
