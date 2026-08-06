@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,7 +19,47 @@ class Settings(BaseSettings):
     app_name: str = "Bimi Admin API"
     environment: str = Field(default="development")
     # The Next.js origin(s) allowed to call this API with cookies.
+    # Accepts three forms so you never have to fight JSON-in-env-vars:
+    #   CORS_ORIGINS=https://a.com                     (single)
+    #   CORS_ORIGINS=https://a.com,https://b.com       (comma-separated)
+    #   CORS_ORIGINS=["https://a.com","https://b.com"] (JSON array)
+    # A bare host (no scheme) gets https:// prepended.
     cors_origins: list[str] = Field(default=["http://localhost:3000"])
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v):
+        import json
+
+        if v is None or v == "":
+            return ["http://localhost:3000"]
+        if isinstance(v, str):
+            s = v.strip()
+            # JSON array form
+            if s.startswith("["):
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        v = parsed
+                    else:
+                        v = [s]
+                except json.JSONDecodeError:
+                    # Not valid JSON — treat the inside as a comma list, tolerating
+                    # unquoted hosts like [bimi-admin-api.example.com]
+                    v = [p.strip().strip('"').strip("'") for p in s.strip("[]").split(",")]
+            else:
+                # comma-separated or single value
+                v = [p.strip() for p in s.split(",")]
+        # Normalise: drop blanks, add scheme to bare hosts.
+        out = []
+        for item in v:
+            item = str(item).strip().strip('"').strip("'")
+            if not item:
+                continue
+            if "://" not in item:
+                item = "https://" + item
+            out.append(item)
+        return out or ["http://localhost:3000"]
 
     # ── Database ─────────────────────────────────────────────
     # The SAME budgit_ai database the assistant reads from. The admin API only
@@ -35,6 +75,29 @@ class Settings(BaseSettings):
     session_secret: str = Field(default="change-me-in-production")
     session_cookie_name: str = "bimi_admin_session"
     session_ttl_hours: int = 24
+    # Cookie cross-site behaviour. Defaults adapt to ENVIRONMENT, but can be set
+    # explicitly per deployment:
+    #   • Same site (shared parent domain, e.g. app + api subdomains):
+    #       COOKIE_SAMESITE=lax   COOKIE_DOMAIN=.yourdomain.com
+    #   • Different sites (frontend and API on unrelated domains):
+    #       COOKIE_SAMESITE=none  (forces Secure; requires HTTPS on both)
+    # None = auto: 'lax' + Secure in production, 'lax' + insecure in development.
+    cookie_samesite: str | None = Field(default=None)   # 'lax' | 'strict' | 'none'
+    cookie_secure: bool | None = Field(default=None)    # None ⇒ derive from env / samesite
+    cookie_domain: str | None = Field(default=None)     # e.g. '.kenechidukor.com'
+
+    @property
+    def resolved_samesite(self) -> str:
+        return (self.cookie_samesite or "lax").lower()
+
+    @property
+    def resolved_secure(self) -> bool:
+        # SameSite=None is invalid without Secure, so force it on.
+        if self.resolved_samesite == "none":
+            return True
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.environment != "development"
     # bcrypt work factor for password hashing.
     bcrypt_rounds: int = 12
 

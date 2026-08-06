@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Bimi Admin API",
-    "description": "Bimi Phase 3 Admin Portal \u2014 full API surface (v1).\n\n**Auth model:** login sets an httpOnly session cookie. Postman's cookie jar stores it and sends it automatically on every following request to {{base_url}}, so run **Auth \u2192 Login** first, then any other request.\n\n**Roles:** endpoints under Users and some restore/edit/delete actions require a Super Admin session. The seeded Super Admin is demlabz@gmail.com / changeme123.\n\nSet the `base_url` variable (default http://localhost:8000).",
+    "description": "Bimi Phase 3 Admin Portal \u2014 full API surface (v1).\n\n**Auth:** run **Auth \u2192 Login** first; it sets an httpOnly session cookie that Postman's cookie jar sends automatically on every following request to {{base_url}}.\n\n**Roles:** Users, dataset/row restore, row edit/delete, and recycle-bin management require a Super Admin session. Seeded Super Admin: demlabz@gmail.com / changeme123.\n\nSet `base_url` (default http://localhost:8000). Fill table_name/row_id/dataset_id/user_id/batch_id from list responses as you go.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -61,7 +61,7 @@
                 "login"
               ]
             },
-            "description": "Sets the session cookie. Run this first.",
+            "description": "Run first. Sets the session cookie.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"demlabz@gmail.com\",\n  \"password\": \"changeme123\"\n}",
@@ -79,9 +79,6 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('login ok', () => pm.response.code === 200);",
-                  "const jar = pm.cookies;",
-                  "// Session rides on the httpOnly cookie; Postman's cookie jar sends it automatically",
-                  "// for subsequent requests to the same domain.",
                   "const body = pm.response.json();",
                   "if (body.user) pm.collectionVariables.set('current_user_id', body.user.id);"
                 ]
@@ -279,6 +276,56 @@
                 "tables"
               ]
             }
+          }
+        },
+        {
+          "name": "Download CSV template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tables/{{table_name}}/template",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "tables",
+                "{{table_name}}",
+                "template"
+              ]
+            },
+            "description": "Header row + one example row (real FK codes), derived from the live schema. Returns text/csv."
+          }
+        },
+        {
+          "name": "Export table as CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tables/{{table_name}}/export?year=2024",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "tables",
+                "{{table_name}}",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": "2024"
+                }
+              ]
+            },
+            "description": "Streams the table's current rows as CSV (filters optional)."
           }
         },
         {
@@ -495,33 +542,6 @@
               }
             }
           }
-        },
-        {
-          "name": "Export table as CSV",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/tables/{{table_name}}/export?year=2024",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "tables",
-                "{{table_name}}",
-                "export"
-              ],
-              "query": [
-                {
-                  "key": "year",
-                  "value": "2024"
-                }
-              ]
-            }
-          }
         }
       ]
     },
@@ -731,7 +751,7 @@
                 "uploads"
               ]
             },
-            "description": "Validates, then COPYs valid rows into the target table. Rejected files return a report with status 'rejected'.",
+            "description": "Validates, then COPYs valid rows into the target table. Rejected files return status 'rejected'.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1037,6 +1057,37 @@
                 "restore"
               ]
             }
+          }
+        },
+        {
+          "name": "Local download (dev storage only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/recycle/local-download?key=deletions/.../batch.csv&filename=export.csv",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "recycle",
+                "local-download"
+              ],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "deletions/.../batch.csv"
+                },
+                {
+                  "key": "filename",
+                  "value": "export.csv"
+                }
+              ]
+            },
+            "description": "Only works when the LocalStorage dev backend is active (no S3 creds)."
           }
         }
       ]

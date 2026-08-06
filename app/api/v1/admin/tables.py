@@ -112,6 +112,92 @@ def _require_table(table_name: str) -> Table:
     return table
 
 
+@router.get("/tables/{table_name}/template")
+async def download_csv_template(
+    table_name: str,
+    conn: asyncpg.Connection = Depends(db),
+    _: CurrentUser = Depends(get_current_user),
+):
+    """
+    A ready-to-fill CSV template for a table: the header row of the columns a
+    user supplies (the auto-generated id / created_at / search_vector are left
+    out, since the DB fills those), plus one example data row so the expected
+    format is obvious. FK columns are shown with a real, valid reference code
+    pulled from the reference table.
+    """
+    import csv as _csv
+    import io as _io
+
+    from fastapi.responses import StreamingResponse
+
+    table = _require_table(table_name)
+
+    # Columns the uploader provides: everything except the pk sequence,
+    # server-managed timestamps, and the search vector.
+    cols = [
+        c
+        for c in table.columns
+        if c.name != table.pk
+        and not c.is_generated
+        and c.sql_type != "tsvector"
+    ]
+    headers = [c.name for c in cols]
+
+    # Build one example row. For FK columns, fetch a genuine code so the sample
+    # passes validation as-is; otherwise use a type-appropriate placeholder.
+    fk_examples: dict[str, str] = {}
+    for fk in table.fks:
+        val = await conn.fetchval(
+            f'SELECT "{fk.ref_column}" FROM "{fk.ref_table}" LIMIT 1'
+        )
+        if val is not None:
+            fk_examples[fk.column] = str(val)
+
+    example: dict[str, str] = {}
+    for c in cols:
+        if c.name in fk_examples:
+            example[c.name] = fk_examples[c.name]
+        elif c.enum:
+            example[c.name] = c.enum[0]
+        else:
+            example[c.name] = _placeholder(c)
+
+    buf = _io.StringIO()
+    writer = _csv.writer(buf)
+    writer.writerow(headers)
+    writer.writerow([example[h] for h in headers])
+    buf.seek(0)
+
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{table.name}_template.csv"'
+        },
+    )
+
+
+def _placeholder(col) -> str:
+    """A type-appropriate example value for a template column."""
+    name = col.name.lower()
+    t = col.sql_type.lower()
+    if col.ui_type == "year" or name == "year":
+        return "2024"
+    if name == "month":
+        return "1"
+    if name == "quarter":
+        return "1"
+    if col.ui_type == "currency" or t.startswith("numeric"):
+        return "1000000.00"
+    if t.startswith("int"):
+        return "0"
+    if t.startswith(("timestamp", "date")):
+        return "2024-01-31"
+    if name.endswith("_code"):
+        return "ABC"
+    return "example"
+
+
 @router.get("/tables/{table_name}/export")
 async def export_table_csv(
     table_name: str,

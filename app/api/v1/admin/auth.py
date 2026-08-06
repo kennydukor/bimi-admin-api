@@ -75,8 +75,9 @@ async def login(
         key=settings.session_cookie_name,
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=settings.environment != "development",
+        samesite=settings.resolved_samesite,
+        secure=settings.resolved_secure,
+        domain=settings.cookie_domain,
         max_age=settings.session_ttl_hours * 3600,
         path="/",
     )
@@ -90,7 +91,9 @@ async def logout(
     conn: asyncpg.Connection = Depends(db),
 ):
     await conn.execute("DELETE FROM admin_sessions WHERE user_id = $1", user.id)
-    response.delete_cookie(settings.session_cookie_name, path="/")
+    response.delete_cookie(
+        settings.session_cookie_name, path="/", domain=settings.cookie_domain
+    )
 
 
 @router.get("/me", response_model=User)
