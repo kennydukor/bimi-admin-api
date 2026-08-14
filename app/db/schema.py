@@ -322,6 +322,11 @@ async def load_from_db(pool: asyncpg.Pool) -> SchemaRegistry:
         cols_by_table.setdefault(r["table_name"], []).append(r)
 
     for tname, cols in cols_by_table.items():
+        # The registry only manages the production tables described by the DDL
+        # snapshot. Skip the portal's own admin_* bookkeeping tables and any
+        # other table not in the snapshot, so they never appear in Datasets.
+        if tname.startswith("admin_") or tname not in snap:
+            continue
         snap_meta = snap.get(tname, {})
         snap_cols = {c["name"]: c for c in snap_meta.get("columns", [])}
         built_cols = []

@@ -35,10 +35,9 @@ async def dashboard(
     scope = "" if is_super else "AND uploaded_by = $1"
     scope_args: list = [] if is_super else [uid]
 
-    total_datasets = await conn.fetchval(
-        f"SELECT count(*) FROM admin_uploads WHERE deleted_at IS NULL {scope}",
-        *scope_args,
-    )
+    # "Datasets" = the managed production tables (a fixed, meaningful headline),
+    # not portal uploads — uploads are surfaced separately as `recent_uploads`.
+    total_datasets = len(schema_mod.registry.all())
     recent_uploads = await conn.fetchval(
         f"SELECT count(*) FROM admin_uploads WHERE uploaded_at >= $%d {scope}"
         % (len(scope_args) + 1),

@@ -18,6 +18,8 @@ up.
 from __future__ import annotations
 
 import uuid
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -318,9 +320,19 @@ async def update_row(
 
     set_parts = []
     args: list = []
-    for i, (col, val) in enumerate(updates.items(), start=1):
-        set_parts.append(f'"{col}" = ${i}')
-        args.append(val)
+    for i, (col_name, val) in enumerate(updates.items(), start=1):
+        set_parts.append(f'"{col_name}" = ${i}')
+        # Cast the incoming JSON value to the column's actual Postgres type.
+        # JSON gives us str/int/float/bool/None; the DB expects the right type,
+        # e.g. year is int4 even if the client sends the string "2024".
+        col = table.column(col_name)
+        try:
+            args.append(_coerce_value(val, col.sql_type if col else "text"))
+        except (ValueError, InvalidOperation):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f'"{val}" is not a valid value for column "{col_name}"',
+            )
     args.append(_coerce_pk(table, row_id))
     set_sql = ", ".join(set_parts)
     updated = await conn.fetchrow(
@@ -423,6 +435,32 @@ async def bulk_delete_rows(
 
 
 # ── helpers ──────────────────────────────────────────────────
+def _coerce_value(value, sql_type: str):
+    """
+    Cast a JSON value (str | int | float | bool | None) to the Python type
+    asyncpg needs for the given Postgres column type. Empty string and None
+    both become SQL NULL. Raises ValueError/InvalidOperation on bad input so the
+    caller can return a clean 422 instead of a 500.
+    """
+    if value is None or value == "":
+        return None
+    t = sql_type.lower()
+    if t.startswith(("int", "serial", "int2", "int4", "int8")):
+        return int(value)
+    if t.startswith("numeric") or t in ("float4", "float8", "real", "double precision"):
+        return Decimal(str(value))
+    if t.startswith("bool"):
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("t", "true", "1", "yes", "y")
+    if t.startswith("timestamp") or t.startswith("date"):
+        if isinstance(value, (datetime, date)):
+            return value
+        return datetime.fromisoformat(str(value))
+    # text / varchar / char / everything else
+    return str(value)
+
+
 def _coerce_pk(table: Table, row_id: str):
     col = table.column(table.pk)
     if col and col.sql_type.startswith("int"):
