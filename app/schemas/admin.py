@@ -75,6 +75,8 @@ class RowColumnDef(BaseModel):
     label: str
     type: RowColumnType
     options: list[str] | None = None
+    # For FK columns: [{value: code, label: friendly_name}] for the edit dropdown.
+    fk_options: list[dict] | None = None
     read_only: bool | None = None
 
     model_config = {"populate_by_name": True}
@@ -85,6 +87,11 @@ class RowColumnDef(BaseModel):
             data["readOnly"] = data.pop("read_only")
         if data.get("options") is None:
             data.pop("options", None)
+        if "fk_options" in data:
+            if data["fk_options"] is None:
+                data.pop("fk_options")
+            else:
+                data["fkOptions"] = data.pop("fk_options")
         if data.get("readOnly") is None:
             data.pop("readOnly", None)
         return data
@@ -156,6 +163,8 @@ class RowsResponse(BaseModel):
     total: int
     page: int
     page_size: int
+    # {fk_column: {code: friendly_name}} so the table can show names for codes.
+    fk_labels: dict[str, dict[str, str]] | None = None
 
 
 class BulkDeleteResponse(BaseModel):

@@ -47,7 +47,9 @@ def _row_columns(table: Table) -> list[dict]:
         if c.sql_type == "tsvector":
             continue
         options = None
-        if c.ui_type == "select":
+        is_fk = c.name in table.fk_map
+        col_type = "select" if is_fk else c.ui_type
+        if col_type == "select" and not is_fk:
             if c.enum:
                 options = c.enum
             elif c.name == "year":
@@ -60,7 +62,7 @@ def _row_columns(table: Table) -> list[dict]:
             RowColumnDef(
                 key=c.name,
                 label=_humanize_col(c.name),
-                type=c.ui_type,  # type: ignore[arg-type]
+                type=col_type,  # type: ignore[arg-type]
                 options=options,
                 read_only=(c.name == table.pk),
             )
@@ -70,6 +72,22 @@ def _row_columns(table: Table) -> list[dict]:
 
 def _humanize_col(name: str) -> str:
     return " ".join(w.capitalize() for w in name.split("_"))
+
+
+async def _columns_with_fk(conn, table: Table) -> tuple[list[dict], dict[str, dict[str, str]]]:
+    """_row_columns plus, for FK columns, name-labelled dropdown options and a
+    code→name label map for display."""
+    from app.services import fk_labels as _fk
+
+    cols = _row_columns(table)
+    labels = await _fk.labels_for_table(conn, table)
+    for col in cols:
+        if col["key"] in table.fk_map:
+            opts = await _fk.fk_options_for_column(conn, table, col["key"])
+            if opts:
+                col["fkOptions"] = opts
+    return cols, labels
+
 
 
 async def _table_out(conn: asyncpg.Connection, table: Table) -> DatasetTable:
@@ -272,9 +290,11 @@ async def list_rows(
         conn, table, f, limit=ROW_PAGE_SIZE, offset=(page - 1) * ROW_PAGE_SIZE
     )
     items = [{k: jsonable(v) for k, v in r.items()} for r in rows]
+    cols, fk_labels = await _columns_with_fk(conn, table)
     return RowsResponse(
-        table_name=table.name, columns=_row_columns(table),
+        table_name=table.name, columns=cols,
         items=items, total=total, page=page, page_size=ROW_PAGE_SIZE,
+        fk_labels=fk_labels,
     )
 
 
@@ -341,6 +361,11 @@ async def update_row(
     )
     if updated is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Row not found")
+
+    # If a reference table was edited, its friendly-name cache is now stale.
+    if table.is_reference:
+        from app.services import fk_labels as _fk
+        _fk.invalidate(table.name)
 
     await audit.record(
         conn, actor=user, action="edit_row",
