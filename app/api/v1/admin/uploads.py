@@ -159,8 +159,23 @@ async def _copy_into_table(
     created_at) are left out so the DB fills them. Returns (row_count, source).
     """
     text = content.decode("utf-8-sig", errors="replace")
-    reader = csv.DictReader(io.StringIO(text))
-    header = reader.fieldnames or []
+    text = text.lstrip("\ufeff").lstrip("\r\n")
+    # Match the validator: sniff delimiter and clean header names so a file that
+    # passed validation commits identically.
+    sample = text[:4096]
+    try:
+        delimiter = csv.Sniffer().sniff(sample, delimiters=",;\t|").delimiter
+    except csv.Error:
+        delimiter = ","
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
+    raw_header = reader.fieldnames or []
+    clean_map = {
+        h: h.lstrip("\ufeff").strip().strip('"').strip("'") for h in raw_header
+    }
+    header = list(clean_map.values())
+
+    def _clean_row(raw):
+        return {clean_map.get(k, k): v for k, v in raw.items()}
 
     insertable = [
         c for c in table.columns
@@ -170,7 +185,8 @@ async def _copy_into_table(
 
     records = []
     source_label = None
-    for row in reader:
+    for raw in reader:
+        row = _clean_row(raw)
         rec = []
         for c in insertable:
             rec.append(_coerce(row.get(c.name, ""), c.sql_type))

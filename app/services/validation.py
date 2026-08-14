@@ -68,11 +68,50 @@ async def validate_csv(
     "period already exists" flag.
     """
     text = file_bytes.decode("utf-8-sig", errors="replace")
-    reader = csv.DictReader(io.StringIO(text))
-    header = reader.fieldnames or []
+    # Strip a stray BOM if utf-8-sig didn't catch it, and any leading blank lines.
+    text = text.lstrip("\ufeff").lstrip("\r\n")
+
+    # Sniff the delimiter — Excel/Numbers exports are often ';' or tab, not ','.
+    sample = text[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        delimiter = dialect.delimiter
+    except csv.Error:
+        delimiter = ","
+
+    reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)
+    raw_header = reader.fieldnames or []
+    # Normalise header names: strip BOM, surrounding whitespace, and quotes.
+    header = [h.lstrip("\ufeff").strip().strip('"').strip("'") for h in raw_header]
+    # Rebuild the field map so downstream row dicts use the cleaned names.
+    clean_map = dict(zip(raw_header, header))
 
     errors: list[ValidationIssue] = []
     warnings: list[ValidationIssue] = []
+
+    table_col_names = {c.name for c in table.columns}
+
+    # Guard: if NONE of the file's headers match any column in the table, the
+    # file almost certainly wasn't parsed as we expect (wrong delimiter, an
+    # extra title row above the header, or not a CSV). Say that plainly instead
+    # of listing every required column as "missing".
+    if not (set(header) & table_col_names):
+        errors.append(
+            ValidationIssue(
+                type="missing_column", row=None, column=None,
+                message=(
+                    "Couldn't read the column header. Make sure the file is a "
+                    "comma-separated CSV whose first row is the column names "
+                    f"(detected delimiter '{delimiter}', first line: "
+                    f"{(text.splitlines()[0][:80] if text.strip() else '<empty>')!r})."
+                ),
+            )
+        )
+        report = ValidationReport(
+            valid=False, total_rows=0, valid_rows=0, duplicate_rows=0,
+            errors=errors, warnings=warnings,
+        )
+        return report, []
 
     # 1. Required columns present. "Required" = NOT NULL, no default, not the pk.
     required = [
@@ -99,7 +138,10 @@ async def validate_csv(
     ref_values = await _load_ref_values(conn, table)
     col_by_name = {c.name: c for c in table.columns}
 
-    rows = list(reader)
+    rows = [
+        {clean_map.get(k, k): v for k, v in raw_row.items()}
+        for raw_row in reader
+    ]
     total = len(rows)
     seen_rows: set[tuple] = set()
     period_seen: set[tuple] = set()
