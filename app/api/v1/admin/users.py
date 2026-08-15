@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.core.security import CurrentUser, require_super_admin
+from app.core.security import CurrentUser, require_super_admin, hash_password
 from app.db.session import db
 from app.schemas.admin import (
     InviteUserRequest,
@@ -21,6 +21,13 @@ from app.services import audit
 router = APIRouter(prefix="/users", tags=["users"])
 
 PAGE_SIZE = 20
+
+
+def _generate_temp_password(length: int = 12) -> str:
+    """A readable temporary password: no ambiguous chars (0/O, 1/l/I)."""
+    import secrets
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def _user_out(row: asyncpg.Record) -> User:
@@ -65,7 +72,7 @@ async def list_users(
     )
 
 
-@router.post("", response_model=User, status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def invite_user(
     body: InviteUserRequest,
     conn: asyncpg.Connection = Depends(db),
@@ -76,26 +83,25 @@ async def invite_user(
     if exists:
         raise HTTPException(status.HTTP_409_CONFLICT, "A user with that email already exists.")
 
+    temp_password = _generate_temp_password()
     row = await conn.fetchrow(
         """
-        INSERT INTO admin_users (email, full_name, role, status)
-        VALUES ($1,$2,$3,'pending_verification')
+        INSERT INTO admin_users
+            (email, full_name, role, status, password_hash, must_change_password)
+        VALUES ($1,$2,$3,'active',$4,true)
         RETURNING *
         """,
-        email, body.full_name, body.role,
-    )
-    # Issue a verification token (email delivery handled elsewhere).
-    token = secrets.token_urlsafe(32)
-    await conn.execute(
-        """INSERT INTO admin_auth_tokens (token, user_id, purpose, expires_at)
-           VALUES ($1,$2,'verify_email',$3)""",
-        token, row["id"], datetime.now(timezone.utc) + timedelta(days=7),
+        email, body.full_name, body.role, hash_password(temp_password),
     )
     await audit.record(
         conn, actor=admin, action="add_user", target=email,
         detail="Super Admin" if body.role == "super_admin" else "Regular Admin",
     )
-    return _user_out(row)
+    # The temp password is returned ONCE, to the admin, who hands it to the user
+    # out of band. It is never stored in plaintext or shown again.
+    out = _user_out(row).model_dump()
+    out["temp_password"] = temp_password
+    return out
 
 
 @router.patch("/{user_id}", response_model=User)
@@ -149,6 +155,32 @@ async def reinstate_user(
     )
     await audit.record(conn, actor=admin, action="add_user", target=row["email"], detail="Reinstated")
     return _user_out(row)
+
+
+
+
+@router.post("/{user_id}/reset-password")
+async def reset_password(
+    user_id: str,
+    conn: asyncpg.Connection = Depends(db),
+    admin: CurrentUser = Depends(require_super_admin),
+):
+    """Regenerate a temporary password for a user. Returns it once to the admin,
+    who passes it to the user; the user must change it on next login."""
+    await _find(conn, user_id)
+    temp_password = _generate_temp_password()
+    await conn.execute(
+        """UPDATE admin_users
+           SET password_hash = $1, must_change_password = true, status = 'active'
+           WHERE id = $2""",
+        hash_password(temp_password), uuid.UUID(user_id),
+    )
+    # Invalidate any live sessions so the old password can't keep a session open.
+    await conn.execute("DELETE FROM admin_sessions WHERE user_id = $1", uuid.UUID(user_id))
+    row = await _find(conn, user_id)
+    await audit.record(conn, actor=admin, action="add_user", target=row["email"],
+                       detail="Password reset")
+    return {"user": _user_out(row).model_dump(), "temp_password": temp_password}
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

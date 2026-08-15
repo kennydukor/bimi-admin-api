@@ -28,6 +28,7 @@ class User(BaseModel):
     status: UserStatus
     created_at: str
     last_login_at: str | None
+    must_change_password: bool = False
 
 
 class Actor(BaseModel):
@@ -44,6 +45,11 @@ class Session(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class InviteUserRequest(BaseModel):
@@ -125,7 +131,8 @@ class Dataset(BaseModel):
 
 # ── Validation ───────────────────────────────────────────────
 ValidationIssueType = Literal[
-    "missing_column", "type_mismatch", "unknown_code", "duplicate_row", "unexpected_null"
+    "missing_column", "type_mismatch", "unknown_code", "duplicate_row",
+    "unexpected_null", "invalid_enum", "unseen_value"
 ]
 
 

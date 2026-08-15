@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Bimi Admin API",
-    "description": "Bimi Phase 3 Admin Portal \u2014 full API surface (v1).\n\n**Auth:** run **Auth \u2192 Login** first; it sets an httpOnly session cookie that Postman's cookie jar sends automatically on every following request to {{base_url}}.\n\n**Roles:** Users, dataset/row restore, row edit/delete, and recycle-bin management require a Super Admin session. Seeded Super Admin: demlabz@gmail.com / changeme123.\n\nSet `base_url` (default http://localhost:8000). Fill table_name/row_id/dataset_id/user_id/batch_id from list responses as you go.",
+    "description": "Bimi Phase 3 Admin Portal \u2014 full API surface (v1).\n\n**Auth:** run **Auth \u2192 Login** first; it sets an httpOnly session cookie that Postman's cookie jar sends automatically on every following request to {{base_url}}.\n\n**Onboarding (temp passwords \u2014 no email):** a Super Admin creates a user via **Users \u2192 Invite user**; the response returns a one-time `temp_password` (captured into the {{temp_password}} variable). The user logs in with it \u2014 `must_change_password` will be true \u2014 then calls **Auth \u2192 Change password**. A Super Admin can reissue a temp password via **Users \u2192 Reset password**.\n\n**Roles:** Users, dataset/row restore, row edit/delete, and recycle-bin management require a Super Admin session. Seeded Super Admin: demlabz@gmail.com / changeme123.\n\n**Legacy** contains the older email-based verify/reset endpoints, kept for compatibility but superseded by the temp-password flow.\n\nSet `base_url` (default http://localhost:8000). Fill table_name/row_id/dataset_id/user_id/batch_id from responses as you go.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -27,6 +27,10 @@
     },
     {
       "key": "batch_id",
+      "value": ""
+    },
+    {
+      "key": "temp_password",
       "value": ""
     },
     {
@@ -61,7 +65,7 @@
                 "login"
               ]
             },
-            "description": "Run first. Sets the session cookie.",
+            "description": "Run first. Sets the session cookie. Response includes user.must_change_password.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"demlabz@gmail.com\",\n  \"password\": \"changeme123\"\n}",
@@ -79,8 +83,13 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('login ok', () => pm.response.code === 200);",
-                  "const body = pm.response.json();",
-                  "if (body.user) pm.collectionVariables.set('current_user_id', body.user.id);"
+                  "const b = pm.response.json();",
+                  "if (b.user) {",
+                  "  pm.collectionVariables.set('current_user_id', b.user.id);",
+                  "  if (b.user.must_change_password === true) {",
+                  "    console.log('This account must change its password: call Auth \u2192 Change password.');",
+                  "  }",
+                  "}"
                 ]
               }
             }
@@ -103,6 +112,42 @@
                 "auth",
                 "me"
               ]
+            },
+            "description": "Returns the logged-in user, including must_change_password."
+          }
+        },
+        {
+          "name": "Change password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "The logged-in user sets a new password. Used on first login when must_change_password is true (uses the temp password as current_password), and any time after. 204 on success.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{temp_password}}\",\n  \"new_password\": \"my-new-strong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -123,109 +168,6 @@
                 "auth",
                 "logout"
               ]
-            }
-          }
-        },
-        {
-          "name": "Request password reset",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/auth/password-reset",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "auth",
-                "password-reset"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"ibrahim.musa@bimi.gov.ng\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Confirm password reset",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/auth/password-reset/confirm",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "auth",
-                "password-reset",
-                "confirm"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"<token-from-email>\",\n  \"password\": \"newpassword123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Verify email",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/auth/verify-email",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "auth",
-                "verify-email"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"<token-from-email>\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           }
         }
@@ -251,7 +193,7 @@
                 "dashboard"
               ]
             },
-            "description": "Role-scoped: system-wide for Super Admin, own activity for Regular Admin."
+            "description": "Role-scoped. total_datasets = number of managed tables (35); total_columns = columns tracked."
           }
         }
       ]
@@ -284,7 +226,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/admin/tables/{{table_name}}/template",
+              "raw": "{{base_url}}/api/v1/admin/tables/{{table_name}}/template?frequency=monthly",
               "host": [
                 "{{base_url}}"
               ],
@@ -295,9 +237,15 @@
                 "tables",
                 "{{table_name}}",
                 "template"
+              ],
+              "query": [
+                {
+                  "key": "frequency",
+                  "value": "monthly"
+                }
               ]
             },
-            "description": "Header row + one example row (real FK codes), derived from the live schema. Returns text/csv."
+            "description": "Frequency-aware template (monthly|quarterly|annual): fills only the period column that cadence uses. Header + one example row with real FK codes. Returns text/csv \u2014 use Send and Download to save."
           }
         },
         {
@@ -352,7 +300,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Response includes fk_labels ({column:{code:name}}) and columns[].fkOptions for FK display/editing."
           }
         },
         {
@@ -450,6 +399,7 @@
                 "{{row_id}}"
               ]
             },
+            "description": "Values are type-coerced to the column's Postgres type; invalid values return 422.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"allocation\": 5075479999.0,\n  \"source_id\": 2\n}",
@@ -711,7 +661,7 @@
                 "validate"
               ]
             },
-            "description": "Attach a CSV in form-data 'file'. Returns the validation report; commits nothing.",
+            "description": "Attach a CSV in form-data 'file'. Delimiter/BOM tolerant. FK columns accept a code OR a friendly name; unknown values return an unknown_code error. Commits nothing.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -751,7 +701,7 @@
                 "uploads"
               ]
             },
-            "description": "Validates, then COPYs valid rows into the target table. Rejected files return status 'rejected'.",
+            "description": "Validates, then inserts valid rows (resolving FK names to codes). Rejected files return status 'rejected'.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -830,6 +780,7 @@
                 "users"
               ]
             },
+            "description": "Creates an active user with a generated temp password. Response: {user, temp_password}. temp_password is captured into {{temp_password}} and shown once \u2014 hand it to the user.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"new.admin@bimi.gov.ng\",\n  \"full_name\": \"New Admin\",\n  \"role\": \"regular_admin\"\n}",
@@ -839,7 +790,59 @@
                 }
               }
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.temp_password) { pm.collectionVariables.set('temp_password', b.temp_password);",
+                  "  console.log('Temp password:', b.temp_password); }",
+                  "if (b.user && b.user.id) pm.collectionVariables.set('user_id', b.user.id);",
+                  "if (b.id) pm.collectionVariables.set('user_id', b.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset password (reissue temp)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/{{user_id}}/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{user_id}}",
+                "reset-password"
+              ]
+            },
+            "description": "Regenerates a temp password for the user, forces must_change_password, and kills their sessions. Response: {user, temp_password}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.temp_password) { pm.collectionVariables.set('temp_password', b.temp_password);",
+                  "  console.log('Temp password:', b.temp_password); }",
+                  "if (b.user && b.user.id) pm.collectionVariables.set('user_id', b.user.id);",
+                  "if (b.id) pm.collectionVariables.set('user_id', b.id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Set user role",
@@ -1088,6 +1091,115 @@
               ]
             },
             "description": "Only works when the LocalStorage dev backend is active (no S3 creds)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Legacy \u2014 email flow (superseded)",
+      "item": [
+        {
+          "name": "Request password reset (email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/auth/password-reset",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "auth",
+                "password-reset"
+              ]
+            },
+            "description": "Legacy email-token flow. The temp-password flow (Users \u2192 Reset password) is preferred.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ibrahim.musa@bimi.gov.ng\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Confirm password reset (email)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/auth/password-reset/confirm",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "auth",
+                "password-reset",
+                "confirm"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<token>\",\n  \"password\": \"newpassword123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify email (legacy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/auth/verify-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "auth",
+                "verify-email"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<token>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           }
         }
       ]

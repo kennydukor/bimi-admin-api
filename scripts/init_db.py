@@ -17,12 +17,13 @@ import asyncpg
 from app.core.config import settings
 from app.core.security import hash_password
 
-MIGRATION = Path(__file__).resolve().parents[1] / "migrations" / "001_admin_tables.sql"
+MIGRATIONS_DIR = Path(__file__).resolve().parents[1] / "migrations"
 
 
 async def migrate(conn: asyncpg.Connection) -> None:
-    await conn.execute(MIGRATION.read_text())
-    print("✓ admin tables migrated")
+    for path in sorted(MIGRATIONS_DIR.glob("*.sql")):
+        await conn.execute(path.read_text())
+        print(f"✓ applied {path.name}")
 
 
 async def seed(conn: asyncpg.Connection) -> None:
@@ -33,12 +34,15 @@ async def seed(conn: asyncpg.Connection) -> None:
 
     demo = [
         ("demlabz@gmail.com", "John Doe", "super_admin", "active", "changeme123"),
-        ("kennydukor@gmail.com", "Kenechi Dukor", "super_admin", "active", "changeme123"),
+        ("ngozi.okonkwo@bimi.gov.ng", "Ngozi Okonkwo", "super_admin", "active", "changeme123"),
+        ("ibrahim.musa@bimi.gov.ng", "Ibrahim Musa", "regular_admin", "active", "changeme123"),
+        ("funke.adeyemi@bimi.gov.ng", "Funke Adeyemi", "regular_admin", "suspended", "changeme123"),
+        ("amina.suleiman@bimi.gov.ng", "Amina Suleiman", "regular_admin", "pending_verification", None),
     ]
     for email, name, role, status, pw in demo:
         await conn.execute(
-            """INSERT INTO admin_users (email, full_name, role, status, password_hash)
-               VALUES ($1,$2,$3,$4,$5)""",
+            """INSERT INTO admin_users (email, full_name, role, status, password_hash, must_change_password)
+               VALUES ($1,$2,$3,$4,$5,false)""",
             email, name, role, status, hash_password(pw) if pw else None,
         )
     print(f"✓ seeded {len(demo)} demo users (password: changeme123)")

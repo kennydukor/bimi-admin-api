@@ -135,7 +135,21 @@ async def validate_csv(
         )
         return report, []
 
-    ref_values = await _load_ref_values(conn, table)
+    from app.services.fk_labels import resolver_for_table
+    fk_resolvers = await resolver_for_table(conn, table)
+
+    # Columns where a value that has never appeared before is *probably* a typo,
+    # but might be legitimately new — so we warn, not error. Only for non-enum,
+    # non-FK text columns that behave like a controlled vocabulary.
+    VOCAB_COLUMNS = {"unit", "mda", "indicator_name", "project_status"}
+    vocab_values: dict[str, set] = {}
+    for c in table.columns:
+        if c.name in VOCAB_COLUMNS and c.name not in fk_resolvers and not c.enum:
+            rows_v = await conn.fetch(
+                f'SELECT DISTINCT "{c.name}" AS v FROM "{table.name}" '
+                f'WHERE "{c.name}" IS NOT NULL'
+            )
+            vocab_values[c.name] = {str(r["v"]).strip().lower() for r in rows_v}
     col_by_name = {c.name: c for c in table.columns}
 
     rows = [
@@ -154,6 +168,55 @@ async def validate_csv(
             col = col_by_name.get(col_name)
             if col is None:
                 continue  # extra columns are ignored, not an error
+
+            is_fk = col_name in fk_resolvers
+
+            # FK columns: resolve name-or-code FIRST. The cell may hold a friendly
+            # name (text) even though the column type is int, so we must not run
+            # the raw type check on the unresolved value.
+            if is_fk and raw not in ("", None):
+                ok_fk, _code = fk_resolvers[col_name].resolve(raw)
+                if not ok_fk:
+                    fk = table.fk_map[col_name]
+                    errors.append(ValidationIssue(
+                        type="unknown_code", row=i, column=col_name,
+                        message=f'"{raw}" is not a valid {fk.ref_table} code or name',
+                    ))
+                # resolved (or reported); skip the raw type check for this cell.
+                if (raw == "" or raw is None) and not col.nullable and col.default is None:
+                    errors.append(ValidationIssue(
+                        type="unexpected_null", row=i, column=col_name,
+                        message=f'"{col_name}" must not be empty',
+                    ))
+                continue
+
+            # Enum columns (DB CHECK constraints): value must be one of the
+            # allowed options. Hard error — Postgres would reject it anyway, but
+            # we surface it in the report instead of failing at commit.
+            if col.enum and raw not in ("", None):
+                if str(raw).strip() not in col.enum:
+                    errors.append(ValidationIssue(
+                        type="invalid_enum", row=i, column=col_name,
+                        message=(
+                            f'"{raw}" is not allowed for "{col_name}". '
+                            f'Expected one of: {", ".join(col.enum)}'
+                        ),
+                    ))
+                continue
+
+            # Vocabulary columns: warn (don't block) if the value has never been
+            # seen in this column before — likely a typo, possibly legitimately new.
+            if col_name in vocab_values and raw not in ("", None):
+                if str(raw).strip().lower() not in vocab_values[col_name]:
+                    warnings.append(ValidationIssue(
+                        type="unseen_value", row=i, column=col_name,
+                        message=(
+                            f'"{raw}" has not appeared in "{col_name}" before — '
+                            f"double-check it's not a typo."
+                        ),
+                    ))
+                # still run the type check below for text this is a no-op
+
             ok, _ = _parse_type(raw, col.sql_type)
             if not ok:
                 errors.append(ValidationIssue(
@@ -166,13 +229,6 @@ async def validate_csv(
                     type="unexpected_null", row=i, column=col_name,
                     message=f'"{col_name}" must not be empty',
                 ))
-            if col_name in ref_values and raw not in ("", None):
-                if str(raw) not in ref_values[col_name]:
-                    fk = table.fk_map[col_name]
-                    errors.append(ValidationIssue(
-                        type="unknown_code", row=i, column=col_name,
-                        message=f'"{raw}" not found in {fk.ref_table} reference table',
-                    ))
 
         # duplicate detection on the natural key (or whole row if none)
         key_cols = table.period_key or header

@@ -183,13 +183,23 @@ async def _copy_into_table(
     ]
     col_names = [c.name for c in insertable]
 
+    # Resolve FK columns that may contain a friendly name into the canonical code
+    # (validation already guaranteed each value is a valid code or name).
+    from app.services.fk_labels import resolver_for_table
+    fk_resolvers = await resolver_for_table(conn, table)
+
     records = []
     source_label = None
     for raw in reader:
         row = _clean_row(raw)
         rec = []
         for c in insertable:
-            rec.append(_coerce(row.get(c.name, ""), c.sql_type))
+            val = row.get(c.name, "")
+            if c.name in fk_resolvers and val not in ("", None):
+                ok_fk, code = fk_resolvers[c.name].resolve(val)
+                if ok_fk and code is not None:
+                    val = code
+            rec.append(_coerce(val, c.sql_type))
         records.append(tuple(rec))
         if source_label is None and row.get("source_id"):
             source_label = str(row["source_id"])

@@ -78,3 +78,50 @@ async def fk_options_for_column(
     opts = [{"value": code, "label": name} for code, name in mapping.items()]
     opts.sort(key=lambda o: o["label"].lower())
     return opts
+
+
+# ── name → code resolution (forgiving upload input) ──────────
+_code_by_name_cache: dict[str, dict[str, str]] = {}
+
+
+async def resolver_for_table(conn, table) -> dict[str, "FKResolver"]:
+    """For each FK column on `table`, a resolver that accepts either a code or a
+    friendly name (case-insensitive) and returns the canonical code."""
+    from app.db.schema import registry as _reg
+
+    resolvers: dict[str, FKResolver] = {}
+    for fk in table.fks:
+        codes = set((await _load(conn, fk.ref_table, fk.ref_column)).keys())
+        # name → code (lowercased), for the ref table's name column
+        name_col = _NAME_COLUMN.get(fk.ref_table)
+        name_to_code: dict[str, str] = {}
+        if name_col:
+            key = fk.ref_column
+            rows = await conn.fetch(f'SELECT "{key}" AS c, "{name_col}" AS n FROM "{fk.ref_table}"')
+            for r in rows:
+                if r["n"] is not None:
+                    name_to_code.setdefault(str(r["n"]).strip().lower(), str(r["c"]))
+        resolvers[fk.column] = FKResolver(fk.ref_table, codes, name_to_code)
+    return resolvers
+
+
+class FKResolver:
+    """Resolves a cell value to a canonical FK code, or reports why it can't."""
+
+    def __init__(self, ref_table: str, codes: set[str], name_to_code: dict[str, str]):
+        self.ref_table = ref_table
+        self._codes = codes
+        self._name_to_code = name_to_code
+
+    def resolve(self, value: str) -> tuple[bool, str | None]:
+        """Return (ok, code). Accepts an exact code first, then a case-insensitive
+        name. Empty stays empty (NULL handled elsewhere)."""
+        if value is None or value == "":
+            return True, value
+        v = str(value).strip()
+        if v in self._codes:                       # already a valid code
+            return True, v
+        by_name = self._name_to_code.get(v.lower())
+        if by_name is not None:                    # matched a friendly name
+            return True, by_name
+        return False, None

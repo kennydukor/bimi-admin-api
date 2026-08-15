@@ -17,6 +17,7 @@ from app.core.security import (
 )
 from app.db.session import db
 from app.schemas.admin import (
+    ChangePasswordRequest,
     EmailRequest,
     LoginRequest,
     ResetConfirmRequest,
@@ -38,6 +39,7 @@ def _user_out(row: asyncpg.Record) -> User:
         status=row["status"],
         created_at=row["created_at"].isoformat(),
         last_login_at=row["last_login_at"].isoformat() if row["last_login_at"] else None,
+        must_change_password=row["must_change_password"] if "must_change_password" in row else False,
     )
 
 
@@ -154,4 +156,23 @@ async def verify_email(body: TokenRequest, conn: asyncpg.Connection = Depends(db
     )
     await conn.execute(
         "UPDATE admin_auth_tokens SET used_at=now() WHERE token=$1", body.token
+    )
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    body: ChangePasswordRequest,
+    conn: asyncpg.Connection = Depends(db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    """The logged-in user sets a new password. Used on first login (when
+    must_change_password is set) and any time after."""
+    row = await conn.fetchrow("SELECT password_hash FROM admin_users WHERE id = $1", user.id)
+    if not verify_password(body.current_password, row["password_hash"]):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Current password is incorrect.")
+    if len(body.new_password) < 8:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "New password must be at least 8 characters.")
+    await conn.execute(
+        "UPDATE admin_users SET password_hash = $1, must_change_password = false WHERE id = $2",
+        hash_password(body.new_password), user.id,
     )
