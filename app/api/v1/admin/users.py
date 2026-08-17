@@ -72,7 +72,7 @@ async def list_users(
     )
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=None)
 async def invite_user(
     body: InviteUserRequest,
     conn: asyncpg.Connection = Depends(db),
@@ -99,9 +99,18 @@ async def invite_user(
     )
     # The temp password is returned ONCE, to the admin, who hands it to the user
     # out of band. It is never stored in plaintext or shown again.
-    out = _user_out(row).model_dump()
-    out["temp_password"] = temp_password
-    return out
+    user = _user_out(row)
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "status": user.status,
+        "created_at": user.created_at,
+        "last_login_at": user.last_login_at,
+        "must_change_password": True,
+        "temp_password": temp_password,
+    }
 
 
 @router.patch("/{user_id}", response_model=User)
@@ -180,7 +189,16 @@ async def reset_password(
     row = await _find(conn, user_id)
     await audit.record(conn, actor=admin, action="add_user", target=row["email"],
                        detail="Password reset")
-    return {"user": _user_out(row).model_dump(), "temp_password": temp_password}
+    user = _user_out(row)
+    return {
+        "user": {
+            "id": user.id, "email": user.email, "full_name": user.full_name,
+            "role": user.role, "status": user.status,
+            "created_at": user.created_at, "last_login_at": user.last_login_at,
+            "must_change_password": True,
+        },
+        "temp_password": temp_password,
+    }
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

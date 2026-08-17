@@ -175,10 +175,37 @@ async def download_dataset(
     production table; a presigned S3 link is used when the source file was
     archived. Here we redirect to a generated export endpoint.
     """
+    import csv as _csv
+    import io as _io
+    from fastapi.responses import StreamingResponse
+    from app.db import schema as _schema
+    from app.db.schema import jsonable as _jsonable
+
     row = await _get_owned(conn, dataset_id, user)
-    # The export itself is produced by a lightweight CSV endpoint; for brevity we
-    # point the browser at the table export with this dataset's filter applied.
-    return RedirectResponse(
-        url=f"/api/v1/admin/tables/{row['table_name']}/export?dataset={dataset_id}",
-        status_code=307,
+    table = _schema.registry.get(row["table_name"])
+    if table is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Table not found")
+
+    # Stream the table's current rows as CSV directly — no redirect (a redirect
+    # can drop the session cookie and 401 the download).
+    display_cols = [c.name for c in table.columns if c.sql_type != "tsvector"]
+    col_list = ", ".join(f'"{c}"' for c in display_cols)
+    data_rows = await conn.fetch(
+        f'SELECT {col_list} FROM "{table.name}" ORDER BY "{table.pk}"'
+    )
+
+    buf = _io.StringIO()
+    writer = _csv.DictWriter(buf, fieldnames=display_cols, extrasaction="ignore")
+    writer.writeheader()
+    for r in data_rows:
+        writer.writerow({k: _jsonable(v) for k, v in dict(r).items()})
+    buf.seek(0)
+
+    filename = row["file_name"] or f"{table.name}.csv"
+    if not filename.endswith(".csv"):
+        filename += ".csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
