@@ -101,16 +101,20 @@ async def _table_out(conn: asyncpg.Connection, table: Table) -> DatasetTable:
         c.name for c in table.columns
         if not c.nullable and c.default is None and c.name != table.pk
     ]
+    # Attach fkOptions to FK columns so the row-edit dropdown (which reads
+    # table.row_columns) is populated, matching the rows endpoint.
+    row_cols, _ = await _columns_with_fk(conn, table)
     return DatasetTable(
         name=table.name,
         label=schema_mod.humanize(table.name),
         category=table.category,
         frequency=table.frequency,  # type: ignore[arg-type]
+        is_reference=table.is_reference,
         row_count=int(row_count or 0),
         column_count=len(table.columns),
         last_updated_at=last_updated.isoformat() if last_updated else None,
         required_columns=required,
-        row_columns=_row_columns(table),
+        row_columns=row_cols,
     )
 
 

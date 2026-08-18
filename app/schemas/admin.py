@@ -40,6 +40,11 @@ class Actor(BaseModel):
 class Session(BaseModel):
     user: User
     expires_at: str
+    # The session token, also set as an httpOnly cookie. Returned in the body so
+    # cross-origin SPAs (where third-party cookies are blocked) can send it as an
+    # Authorization: Bearer header instead. Store it in memory; treat like a
+    # credential.
+    access_token: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -108,6 +113,7 @@ class DatasetTable(BaseModel):
     label: str
     category: str
     frequency: Frequency
+    is_reference: bool = False
     row_count: int
     column_count: int
     last_updated_at: str | None
