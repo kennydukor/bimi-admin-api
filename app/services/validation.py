@@ -224,9 +224,18 @@ async def validate_csv(
                 ok_fk, _code = fk_resolvers[col_name].resolve(raw)
                 if not ok_fk:
                     fk = table.fk_map[col_name]
+                    # Codes only. If the value looks like a NAME, point the user
+                    # at the code they should have used.
+                    hint_code = fk_resolvers[col_name].code_for_name(raw)
+                    if hint_code is not None:
+                        msg = (
+                            f'"{raw}" is a name — use the code "{hint_code}" '
+                            f'instead (this column accepts {fk.ref_table} codes).'
+                        )
+                    else:
+                        msg = f'"{raw}" is not a valid {fk.ref_table} code'
                     errors.append(ValidationIssue(
-                        type="unknown_code", row=i, column=col_name,
-                        message=f'"{raw}" is not a valid {fk.ref_table} code or name',
+                        type="unknown_code", row=i, column=col_name, message=msg,
                     ))
                 # resolved (or reported); skip the raw type check for this cell.
                 if (raw == "" or raw is None) and not col.nullable and col.default is None:

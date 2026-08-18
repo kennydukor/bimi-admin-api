@@ -114,14 +114,20 @@ class FKResolver:
         self._name_to_code = name_to_code
 
     def resolve(self, value: str) -> tuple[bool, str | None]:
-        """Return (ok, code). Accepts an exact code first, then a case-insensitive
-        name. Empty stays empty (NULL handled elsewhere)."""
+        """Return (ok, code). CODES ONLY — the stored value must be a canonical
+        code, not a friendly name. Empty stays empty (NULL handled elsewhere).
+        A value that matches a NAME still fails, but see `code_for_name` so the
+        caller can hint the correct code in the error message."""
         if value is None or value == "":
             return True, value
         v = str(value).strip()
-        if v in self._codes:                       # already a valid code
+        if v in self._codes:                       # valid code — the only accepted form
             return True, v
-        by_name = self._name_to_code.get(v.lower())
-        if by_name is not None:                    # matched a friendly name
-            return True, by_name
         return False, None
+
+    def code_for_name(self, value) -> str | None:
+        """If `value` is a friendly NAME (not a code), the code it maps to — used
+        purely to make the rejection message helpful ('use FC, not "FCT"')."""
+        if value is None:
+            return None
+        return self._name_to_code.get(str(value).strip().lower())

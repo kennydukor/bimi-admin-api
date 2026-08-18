@@ -117,6 +117,9 @@ class DatasetTable(BaseModel):
     category: str
     frequency: Frequency
     is_reference: bool = False
+    # Existing reporting cadence inferred from the data: 'monthly' | 'quarterly'
+    # | 'annual' | 'mixed' | None (no period columns / no data yet).
+    current_cadence: str | None = None
     row_count: int
     column_count: int
     last_updated_at: str | None

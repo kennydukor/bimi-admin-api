@@ -112,18 +112,50 @@ async def _table_out(conn: asyncpg.Connection, table: Table) -> DatasetTable:
     # Attach fkOptions to FK columns so the row-edit dropdown (which reads
     # table.row_columns) is populated, matching the rows endpoint.
     row_cols, _ = await _columns_with_fk(conn, table)
+
+    # Current reporting cadence, inferred from which period cells are populated:
+    # 'monthly' / 'quarterly' / 'annual' / 'mixed' / None (no period cols or no
+    # data yet). Drives the read-only "expected frequency" hint in the upload UI.
+    current_cadence = await _infer_current_cadence(conn, table)
+
     return DatasetTable(
         name=table.name,
         label=schema_mod.humanize(table.name),
         category=table.category,
         frequency=table.frequency,  # type: ignore[arg-type]
         is_reference=table.is_reference,
+        current_cadence=current_cadence,
         row_count=int(row_count or 0),
         column_count=len(table.columns),
         last_updated_at=last_updated.isoformat() if last_updated else None,
         required_columns=required,
         row_columns=row_cols,
     )
+
+
+async def _infer_current_cadence(conn: asyncpg.Connection, table: Table) -> str | None:
+    """The table's existing reporting cadence, from month/quarter presence."""
+    has_month = table.has_column("month")
+    has_quarter = table.has_column("quarter")
+    if not has_month and not has_quarter:
+        return None
+    mcol = '"month"' if has_month else "NULL"
+    qcol = '"quarter"' if has_quarter else "NULL"
+    rows = await conn.fetch(
+        f'SELECT DISTINCT {mcol} AS m, {qcol} AS q FROM "{table.name}" LIMIT 1000'
+    )
+    cadences: set[str] = set()
+    for r in rows:
+        m = r["m"] is not None
+        q = r["q"] is not None
+        if m and q:
+            continue
+        cadences.add("monthly" if m else "quarterly" if q else "annual")
+    if not cadences:
+        return None
+    if len(cadences) == 1:
+        return next(iter(cadences))
+    return "mixed"
 
 
 @router.get("/tables", response_model=list[DatasetTable])
