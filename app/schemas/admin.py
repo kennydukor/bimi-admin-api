@@ -141,7 +141,10 @@ class Dataset(BaseModel):
 # ── Validation ───────────────────────────────────────────────
 ValidationIssueType = Literal[
     "missing_column", "type_mismatch", "unknown_code", "duplicate_row",
-    "unexpected_null", "invalid_enum", "unseen_value"
+    "unexpected_null", "invalid_enum", "unseen_value",
+    # Cadence checks: a row that's both monthly and quarterly (hard error), and
+    # a file whose cadence differs from the table's existing data (warning).
+    "cadence_conflict", "cadence_mismatch"
 ]
 
 
