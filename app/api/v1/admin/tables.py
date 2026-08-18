@@ -58,6 +58,11 @@ def _row_columns(table: Table) -> list[dict]:
                 options = [str(m) for m in range(1, 13)]
             elif c.name == "quarter":
                 options = [str(q) for q in range(1, 5)]
+        # A nullable, non-FK select (e.g. month/quarter) gets a leading blank
+        # option so it can be cleared — an empty month AND quarter means the row
+        # is annual data.
+        if options is not None and not is_fk and c.nullable:
+            options = [""] + options
         defs.append(
             RowColumnDef(
                 key=c.name,
@@ -65,6 +70,7 @@ def _row_columns(table: Table) -> list[dict]:
                 type=col_type,  # type: ignore[arg-type]
                 options=options,
                 read_only=(c.name == table.pk),
+                nullable=c.nullable,
             )
         )
     return [d.model_dump() for d in defs]

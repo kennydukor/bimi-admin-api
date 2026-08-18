@@ -86,6 +86,7 @@ class RowColumnDef(BaseModel):
     label: str
     type: RowColumnType
     options: list[str] | None = None
+    nullable: bool | None = None
     # For FK columns: [{value: code, label: friendly_name}] for the edit dropdown.
     fk_options: list[dict] | None = None
     read_only: bool | None = None
@@ -98,6 +99,8 @@ class RowColumnDef(BaseModel):
             data["readOnly"] = data.pop("read_only")
         if data.get("options") is None:
             data.pop("options", None)
+        if data.get("nullable") is None:
+            data.pop("nullable", None)
         if "fk_options" in data:
             if data["fk_options"] is None:
                 data.pop("fk_options")
