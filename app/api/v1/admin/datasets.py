@@ -119,7 +119,7 @@ async def get_dataset(
 async def delete_dataset(
     dataset_id: str,
     conn: asyncpg.Connection = Depends(db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_super_admin),
 ):
     row = await _get_owned(conn, dataset_id, user)
     if row["deleted_at"] is not None:

@@ -347,6 +347,34 @@ async def validate_csv(
     return report, period_values
 
 
+from decimal import Decimal, InvalidOperation as _InvalidOperation
+from datetime import datetime as _dt, date as _date
+
+InvalidOperation = _InvalidOperation
+
+
+def _coerce_scalar(value, sql_type: str):
+    """Cast a CSV string to the Python type asyncpg needs for a column, so it
+    binds correctly in period-existence probes. Raises on genuinely bad input
+    (caller decides whether to skip). Mirrors the row-editor's _coerce_value."""
+    if value is None or (isinstance(value, str) and value.strip() == ""):
+        return None
+    t = (sql_type or "text").lower()
+    if t.startswith(("int", "serial", "int2", "int4", "int8")):
+        return int(value)
+    if t.startswith("numeric") or t in ("float4", "float8", "real", "double precision"):
+        return Decimal(str(value))
+    if t.startswith("bool"):
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("t", "true", "1", "yes", "y")
+    if t.startswith("timestamp") or t.startswith("date"):
+        if isinstance(value, (_dt, _date)):
+            return value
+        return _dt.fromisoformat(str(value))
+    return str(value)
+
+
 async def periods_present_in_live_table(
     conn: asyncpg.Connection, table: Table, period_values: list[dict]
 ) -> list[dict]:
@@ -362,20 +390,28 @@ async def periods_present_in_live_table(
     )
     for pv in period_values:
         coerced = []
+        skip = False
         for c in table.period_key:
             a = pv.get(c)
             col = table.column(c)
-            # Empty string -> NULL (annual rows leave month/quarter blank).
+            # Empty string / None -> NULL (annual rows leave month/quarter blank).
             if a is None or (isinstance(a, str) and a.strip() == ""):
                 coerced.append(None)
                 continue
-            # Integer columns: cast "2024" -> 2024 so it binds and matches.
-            if col and col.sql_type.startswith("int"):
+            # Cast to the column's real type. If the value can't be coerced
+            # (e.g. "Raged" in an integer column — already flagged as a
+            # type_mismatch error for this row), SKIP the existence probe
+            # entirely rather than binding a bad value and crashing. A value
+            # that isn't even the right type can't match an existing row.
+            if col is not None:
                 try:
-                    a = int(a)
-                except (ValueError, TypeError):
-                    pass
+                    a = _coerce_scalar(a, col.sql_type)
+                except (ValueError, TypeError, InvalidOperation):
+                    skip = True
+                    break
             coerced.append(a)
+        if skip:
+            continue
         exists = await conn.fetchval(
             f'SELECT EXISTS(SELECT 1 FROM "{table.name}" WHERE {where})', *coerced
         )

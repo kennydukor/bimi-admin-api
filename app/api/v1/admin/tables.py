@@ -499,7 +499,7 @@ async def bulk_delete_rows(
     table_name: str,
     filter: dict,
     conn: asyncpg.Connection = Depends(db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_super_admin),
 ):
     table = _require_table(table_name)
     # Build the same validated filter the row browser uses.
