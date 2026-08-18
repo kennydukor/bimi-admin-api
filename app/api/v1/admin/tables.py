@@ -18,6 +18,8 @@ up.
 from __future__ import annotations
 
 import uuid
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -204,16 +206,37 @@ async def download_csv_template(
     buf = _io.StringIO()
     writer = _csv.writer(buf)
     writer.writerow(headers)
-    writer.writerow([example[h] for h in headers])
+
+    # Prefer up to 3 REAL rows from the table so the user sees genuine values
+    # and formatting. Only the uploadable columns are selected (codes, not
+    # friendly names, so the sample re-uploads cleanly). Falls back to the
+    # synthetic example row when the table is empty.
+    col_list = ", ".join(f'"{h}"' for h in headers)
+    sample_rows = await conn.fetch(
+        f'SELECT {col_list} FROM "{table.name}" ORDER BY "{table.pk}" DESC LIMIT 3'
+    )
+    if sample_rows:
+        for r in sample_rows:
+            writer.writerow([_csv_cell(r[h]) for h in headers])
+    else:
+        writer.writerow([example[h] for h in headers])
+
     buf.seek(0)
 
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
         headers={
-            "Content-Disposition": f'attachment; filename="{table.name}_{freq}_template.csv"'
+            "Content-Disposition": f'attachment; filename="{table.name}_{freq}_sample.csv"'
         },
     )
+
+
+def _csv_cell(value) -> str:
+    """Render a DB value for a CSV cell: NULL -> empty string, else str()."""
+    if value is None:
+        return ""
+    return str(value)
 
 
 def _placeholder(col) -> str:
@@ -241,6 +264,8 @@ def _placeholder(col) -> str:
 async def export_table_csv(
     table_name: str,
     year: str | None = None,
+    year_from: int | None = None,
+    year_to: int | None = None,
     source: str | None = None,
     search: str | None = None,
     dataset: str | None = None,  # accepted for URL compatibility; filtering by
@@ -249,7 +274,12 @@ async def export_table_csv(
     conn: asyncpg.Connection = Depends(db),
     _: CurrentUser = Depends(get_current_user),
 ):
-    """Stream the (optionally filtered) rows of a table as CSV."""
+    """Stream the (optionally filtered) rows of a table as CSV.
+
+    Supports a year range via year_from / year_to for tables that have a `year`
+    column. Reference tables (no year column) ignore the range and export all
+    rows.
+    """
     import csv as _csv
     import io as _io
 
@@ -259,10 +289,24 @@ async def export_table_csv(
     f = query_builder.build_row_filter(table, year=year, source=source, search=search)
     display_cols = [c.name for c in table.columns if c.sql_type != "tsvector"]
     col_list = ", ".join(f'"{c}"' for c in display_cols)
+
+    # Optional year range — only applied when the table actually has a `year`
+    # column (reference tables don't). Appended as additional predicates using
+    # parameter placeholders that continue after the builder's existing args.
+    where_sql = f.where_sql
+    args = list(f.args)
+    if table.has_column("year"):
+        if year_from is not None:
+            args.append(int(year_from))
+            where_sql += f' AND "year" >= ${len(args)}'
+        if year_to is not None:
+            args.append(int(year_to))
+            where_sql += f' AND "year" <= ${len(args)}'
+
     rows = await conn.fetch(
-        f'SELECT {col_list} FROM "{table.name}" WHERE {f.where_sql} '
+        f'SELECT {col_list} FROM "{table.name}" WHERE {where_sql} '
         f'ORDER BY "{table.pk}"',
-        *f.args,
+        *args,
     )
 
     buf = _io.StringIO()
@@ -359,16 +403,32 @@ async def update_row(
 
     set_parts = []
     args: list = []
-    for i, (col, val) in enumerate(updates.items(), start=1):
-        set_parts.append(f'"{col}" = ${i}')
-        args.append(val)
+    for i, (col_name, val) in enumerate(updates.items(), start=1):
+        set_parts.append(f'"{col_name}" = ${i}')
+        # Cast the incoming JSON value to the column's real Postgres type. JSON
+        # sends str/int/float/None; integer columns like month/quarter/source_id
+        # arrive as "2" or "" from the edit form and must become int or NULL.
+        col = table.column(col_name)
+        try:
+            args.append(_coerce_value(val, col.sql_type if col else "text"))
+        except (ValueError, InvalidOperation):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f'"{val}" is not a valid value for column "{col_name}"',
+            )
     args.append(_coerce_pk(table, row_id))
     set_sql = ", ".join(set_parts)
-    updated = await conn.fetchrow(
-        f'UPDATE "{table.name}" SET {set_sql} WHERE "{table.pk}" = ${len(args)} '
-        f"RETURNING *",
-        *args,
-    )
+    try:
+        updated = await conn.fetchrow(
+            f'UPDATE "{table.name}" SET {set_sql} WHERE "{table.pk}" = ${len(args)} '
+            f"RETURNING *",
+            *args,
+        )
+    except asyncpg.UniqueViolationError:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This change would duplicate an existing row (same key columns).",
+        )
     if updated is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Row not found")
 
@@ -469,6 +529,27 @@ async def bulk_delete_rows(
 
 
 # ── helpers ──────────────────────────────────────────────────
+def _coerce_value(value, sql_type: str):
+    """Cast a JSON value to the Python type asyncpg needs for a Postgres column.
+    Empty string and None both become NULL. Raises on genuinely bad input."""
+    if value is None or value == "":
+        return None
+    t = sql_type.lower()
+    if t.startswith(("int", "serial", "int2", "int4", "int8")):
+        return int(value)
+    if t.startswith("numeric") or t in ("float4", "float8", "real", "double precision"):
+        return Decimal(str(value))
+    if t.startswith("bool"):
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("t", "true", "1", "yes", "y")
+    if t.startswith("timestamp") or t.startswith("date"):
+        if isinstance(value, (datetime, date)):
+            return value
+        return datetime.fromisoformat(str(value))
+    return str(value)
+
+
 def _coerce_pk(table: Table, row_id: str):
     col = table.column(table.pk)
     if col and col.sql_type.startswith("int"):
