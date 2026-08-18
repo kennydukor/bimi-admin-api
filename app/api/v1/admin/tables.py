@@ -71,7 +71,7 @@ def _row_columns(table: Table) -> list[dict]:
                 label=_humanize_col(c.name),
                 type=col_type,  # type: ignore[arg-type]
                 options=options,
-                read_only=(c.name == table.pk),
+                read_only=(c.name == table.pk or c.name in ("created_at", "updated_at")),
                 nullable=c.nullable,
             )
         )

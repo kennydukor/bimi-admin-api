@@ -96,7 +96,10 @@ class Table:
         return [
             c
             for c in self.columns
-            if c.name != self.pk and not c.is_generated and c.sql_type != "tsvector"
+            if c.name != self.pk
+            and not c.is_generated
+            and c.sql_type != "tsvector"
+            and c.name not in ("created_at", "updated_at")
         ]
 
     @property
