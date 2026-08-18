@@ -33,13 +33,27 @@ class S3Storage:
         import boto3  # imported lazily so dev without boto3 still starts
 
         self._bucket = settings.s3_bucket
-        self._client = boto3.client(
-            "s3",
-            region_name=settings.s3_region,
-            endpoint_url=settings.s3_endpoint_url,
-            aws_access_key_id=settings.aws_access_key_id,
-            aws_secret_access_key=settings.aws_secret_access_key,
-        )
+
+        # Build kwargs conditionally. For REAL AWS S3 you must NOT pass
+        # endpoint_url — boto3 derives it from the region. Passing an empty
+        # string raises "Invalid endpoint: ". Only set endpoint_url for an
+        # S3-compatible service like MinIO, where it's a real URL. Likewise,
+        # omit credentials when unset so boto3 can fall back to its default
+        # chain (IAM role, env, shared config).
+        def _clean(val):
+            return val if (val is not None and str(val).strip() != "") else None
+
+        kwargs = {"region_name": _clean(settings.s3_region)}
+        endpoint = _clean(settings.s3_endpoint_url)
+        if endpoint:
+            kwargs["endpoint_url"] = endpoint
+        access_key = _clean(settings.aws_access_key_id)
+        secret_key = _clean(settings.aws_secret_access_key)
+        if access_key and secret_key:
+            kwargs["aws_access_key_id"] = access_key
+            kwargs["aws_secret_access_key"] = secret_key
+
+        self._client = boto3.client("s3", **kwargs)
 
     def put_text(self, key: str, body: str, content_type: str) -> None:
         self._client.put_object(
@@ -97,10 +111,17 @@ class LocalStorage:
 _storage: ObjectStorage | None = None
 
 
+def _is_set(val) -> bool:
+    return val is not None and str(val).strip() != ""
+
+
 def get_storage() -> ObjectStorage:
     global _storage
     if _storage is None:
-        if settings.aws_access_key_id or settings.s3_endpoint_url:
+        # Use S3 when real credentials OR a custom endpoint are configured;
+        # treat empty-string env vars as unset so a blank value doesn't
+        # half-enable S3 and crash boto3.
+        if _is_set(settings.aws_access_key_id) or _is_set(settings.s3_endpoint_url):
             _storage = S3Storage()
         else:
             _storage = LocalStorage()
