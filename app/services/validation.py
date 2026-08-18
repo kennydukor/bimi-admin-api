@@ -59,6 +59,26 @@ def _parse_type(value: str, sql_type: str) -> tuple[bool, Any]:
         return False, None
 
 
+def _cadence_of(row: dict, has_month: bool, has_quarter: bool) -> str | None:
+    """Classify a row's reporting cadence from which period cells are filled.
+    Returns 'monthly', 'quarterly', 'annual', or 'invalid' (both month AND
+    quarter set), or None when the table has no period columns at all."""
+    if not has_month and not has_quarter:
+        return None
+    def _filled(k):
+        v = row.get(k)
+        return v is not None and str(v).strip() != ""
+    m = _filled("month") if has_month else False
+    q = _filled("quarter") if has_quarter else False
+    if m and q:
+        return "invalid"
+    if m:
+        return "monthly"
+    if q:
+        return "quarterly"
+    return "annual"
+
+
 async def validate_csv(
     conn: asyncpg.Connection, table: Table, file_bytes: bytes, filename: str
 ) -> tuple[ValidationReport, list[dict]]:
@@ -152,6 +172,32 @@ async def validate_csv(
             vocab_values[c.name] = {str(r["v"]).strip().lower() for r in rows_v}
     col_by_name = {c.name: c for c in table.columns}
 
+    # Reporting cadence is encoded by which of month/quarter are filled — there
+    # is no explicit frequency column. We infer the file's cadence per row and
+    # compare it to the cadences already present in the table, so the user never
+    # has to declare a frequency. A per-row month-AND-quarter combo is a hard
+    # error; a file whose cadence differs from the table's existing data is a
+    # soft warning (cadence can legitimately evolve), and if the table is
+    # already mixed we don't warn at all.
+    has_month = table.has_column("month")
+    has_quarter = table.has_column("quarter")
+    db_cadences: set[str] = set()
+    if has_month or has_quarter:
+        mcol = '"month"' if has_month else "NULL"
+        qcol = '"quarter"' if has_quarter else "NULL"
+        db_rows = await conn.fetch(
+            f'SELECT DISTINCT {mcol} AS m, {qcol} AS q FROM "{table.name}" '
+            f'LIMIT 1000'
+        )
+        for r in db_rows:
+            m = r["m"] is not None
+            q = r["q"] is not None
+            if m and q:
+                continue  # ignore any pre-existing malformed rows
+            db_cadences.add("monthly" if m else "quarterly" if q else "annual")
+
+    file_cadences: set[str] = set()
+
     rows = [
         {clean_map.get(k, k): v for k, v in raw_row.items()}
         for raw_row in reader
@@ -230,6 +276,19 @@ async def validate_csv(
                     message=f'"{col_name}" must not be empty',
                 ))
 
+        # Reporting cadence for this row (monthly / quarterly / annual).
+        cadence = _cadence_of(row, has_month, has_quarter)
+        if cadence == "invalid":
+            errors.append(ValidationIssue(
+                type="cadence_conflict", row=i, column="month",
+                message=(
+                    "A row can't be both monthly and quarterly — set either "
+                    "month or quarter, not both (leave both blank for annual)."
+                ),
+            ))
+        elif cadence is not None:
+            file_cadences.add(cadence)
+
         # duplicate detection on the natural key (or whole row if none)
         key_cols = table.period_key or header
         key = tuple(row.get(c) for c in key_cols)
@@ -248,6 +307,24 @@ async def validate_csv(
             if pkey not in period_seen:
                 period_seen.add(pkey)
                 period_values.append({c: row.get(c) for c in table.period_key})
+
+    # Soft cadence-consistency check: if the table already has a single, clear
+    # cadence and this file brings a different one, flag it (not a block — the
+    # cadence may be legitimately changing). Skip when the table has no prior
+    # period data or is already mixed (nothing meaningful to conform to).
+    if db_cadences and len(db_cadences) == 1 and file_cadences:
+        new_cadences = file_cadences - db_cadences
+        if new_cadences:
+            existing = next(iter(db_cadences))
+            incoming = ", ".join(sorted(new_cadences))
+            warnings.append(ValidationIssue(
+                type="cadence_mismatch", row=None, column=None,
+                message=(
+                    f"This table's existing rows are all {existing}, but this "
+                    f"file contains {incoming} rows. Upload will proceed — "
+                    f"confirm this is intended."
+                ),
+            ))
 
     valid_rows = total - len({e.row for e in errors if e.row is not None})
     report = ValidationReport(

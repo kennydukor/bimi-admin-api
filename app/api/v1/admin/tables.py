@@ -145,16 +145,17 @@ def _require_table(table_name: str) -> Table:
 @router.get("/tables/{table_name}/template")
 async def download_csv_template(
     table_name: str,
-    frequency: str = "monthly",   # monthly | quarterly | annual
+    frequency: str | None = None,   # accepted for URL compatibility; ignored.
     conn: asyncpg.Connection = Depends(db),
     _: CurrentUser = Depends(get_current_user),
 ):
     """
     A ready-to-fill CSV template for a table: the header row of the columns a
     user supplies (the auto-generated id / created_at / search_vector are left
-    out, since the DB fills those), plus one example data row so the expected
-    format is obvious. FK columns are shown with a real, valid reference code
-    pulled from the reference table.
+    out, since the DB fills those), plus up to 3 REAL rows from the table so the
+    expected format — including the table's actual reporting cadence — is
+    self-evident. Empty tables return a header-only sheet. Reporting frequency
+    is never asked for: it's inferred from the data (or irrelevant when empty).
     """
     import csv as _csv
     import io as _io
@@ -174,60 +175,31 @@ async def download_csv_template(
     ]
     headers = [c.name for c in cols]
 
-    # Build one example row. For FK columns, fetch a genuine code so the sample
-    # passes validation as-is; otherwise use a type-appropriate placeholder.
-    fk_examples: dict[str, str] = {}
-    for fk in table.fks:
-        val = await conn.fetchval(
-            f'SELECT "{fk.ref_column}" FROM "{fk.ref_table}" LIMIT 1'
-        )
-        if val is not None:
-            fk_examples[fk.column] = str(val)
-
-    freq = (frequency or "monthly").lower()
-    example: dict[str, str] = {}
-    for c in cols:
-        # Period columns depend on the reporting frequency: only the columns a
-        # given cadence uses are filled; the others are left blank so the row is
-        # never tagged as e.g. "January AND Q1" at once.
-        if c.name == "month":
-            example[c.name] = "1" if freq == "monthly" else ""
-            continue
-        if c.name == "quarter":
-            example[c.name] = "1" if freq == "quarterly" else ""
-            continue
-        if c.name in fk_examples:
-            example[c.name] = fk_examples[c.name]
-        elif c.enum:
-            example[c.name] = c.enum[0]
-        else:
-            example[c.name] = _placeholder(c)
-
     buf = _io.StringIO()
     writer = _csv.writer(buf)
     writer.writerow(headers)
 
-    # Prefer up to 3 REAL rows from the table so the user sees genuine values
-    # and formatting. Only the uploadable columns are selected (codes, not
-    # friendly names, so the sample re-uploads cleanly). Falls back to the
-    # synthetic example row when the table is empty.
+    # The template shows the table's ACTUAL shape: up to 3 real rows (spanning
+    # whatever cadence mix the table holds — monthly/quarterly/annual — so the
+    # user sees exactly how existing data looks). Codes, not friendly names, so
+    # the sample re-uploads cleanly. An EMPTY table yields a header-only sheet;
+    # there's nothing to infer, so no example row and no frequency to choose.
     col_list = ", ".join(f'"{h}"' for h in headers)
     sample_rows = await conn.fetch(
-        f'SELECT {col_list} FROM "{table.name}" ORDER BY "{table.pk}" DESC LIMIT 3'
+        f'SELECT {col_list} FROM "{table.name}" '
+        f'ORDER BY "{table.pk}" DESC LIMIT 3'
     )
-    if sample_rows:
-        for r in sample_rows:
-            writer.writerow([_csv_cell(r[h]) for h in headers])
-    else:
-        writer.writerow([example[h] for h in headers])
+    for r in sample_rows:
+        writer.writerow([_csv_cell(r[h]) for h in headers])
 
     buf.seek(0)
 
+    suffix = "sample" if sample_rows else "template"
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
         headers={
-            "Content-Disposition": f'attachment; filename="{table.name}_{freq}_sample.csv"'
+            "Content-Disposition": f'attachment; filename="{table.name}_{suffix}.csv"'
         },
     )
 
