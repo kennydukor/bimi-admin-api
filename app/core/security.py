@@ -46,6 +46,10 @@ class CurrentUser:
     full_name: str
     role: str
     status: str
+    # The token of the session this request authenticated with, so logout /
+    # password-change can target THIS session specifically rather than all of
+    # the user's sessions. Optional for construction sites that don't have it.
+    session_token: str | None = None
 
     @property
     def is_super_admin(self) -> bool:
@@ -92,6 +96,7 @@ async def get_current_user(
         full_name=row["full_name"],
         role=row["role"],
         status=row["status"],
+        session_token=session_token,
     )
 
 

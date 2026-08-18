@@ -57,6 +57,12 @@ async def login(
     if row["status"] == "pending_verification":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Please verify your email first.")
 
+    # Housekeeping: drop this user's already-expired sessions so the table
+    # doesn't accumulate dead rows over time.
+    await conn.execute(
+        "DELETE FROM admin_sessions WHERE user_id = $1 AND expires_at < now()",
+        row["id"],
+    )
     token = new_session_token()
     expires = datetime.now(timezone.utc) + timedelta(hours=settings.session_ttl_hours)
     await conn.execute(
@@ -92,7 +98,15 @@ async def logout(
     user: CurrentUser = Depends(get_current_user),
     conn: asyncpg.Connection = Depends(db),
 ):
-    await conn.execute("DELETE FROM admin_sessions WHERE user_id = $1", user.id)
+    # Delete just THIS session (bearer or cookie), so logging out on one device
+    # doesn't kill the user's other sessions. Fall back to all-sessions only if
+    # the token is somehow unavailable.
+    if user.session_token:
+        await conn.execute(
+            "DELETE FROM admin_sessions WHERE token = $1", user.session_token
+        )
+    else:
+        await conn.execute("DELETE FROM admin_sessions WHERE user_id = $1", user.id)
     response.delete_cookie(
         settings.session_cookie_name, path="/", domain=settings.cookie_domain
     )
@@ -176,3 +190,11 @@ async def change_password(
         "UPDATE admin_users SET password_hash = $1, must_change_password = false WHERE id = $2",
         hash_password(body.new_password), user.id,
     )
+    # Security: invalidate the user's OTHER sessions after a password change
+    # (in case the old password was compromised). Keep the current session so
+    # the user isn't logged out of the device they just changed it on.
+    if user.session_token:
+        await conn.execute(
+            "DELETE FROM admin_sessions WHERE user_id = $1 AND token <> $2",
+            user.id, user.session_token,
+        )
