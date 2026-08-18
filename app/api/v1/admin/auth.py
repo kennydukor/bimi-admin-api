@@ -83,7 +83,7 @@ async def login(
         max_age=settings.session_ttl_hours * 3600,
         path="/",
     )
-    return Session(user=user, expires_at=expires.isoformat())
+    return Session(user=user, expires_at=expires.isoformat(), access_token=token)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

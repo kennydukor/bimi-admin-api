@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 import asyncpg
 import bcrypt
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 
 from app.core.config import settings
 from app.db.session import db
@@ -55,9 +55,20 @@ class CurrentUser:
 async def get_current_user(
     conn: asyncpg.Connection = Depends(db),
     session_token: str | None = Cookie(default=None, alias=settings.session_cookie_name),
+    authorization: str | None = Header(default=None),
 ) -> CurrentUser:
-    if not session_token:
+    # Two ways to authenticate, so both same-site (cookie) and cross-origin
+    # (SPA on another origin, e.g. localhost → deployed API) setups work:
+    #   1. the httpOnly session cookie, or
+    #   2. an "Authorization: Bearer <token>" header carrying the same token.
+    # The header path avoids third-party-cookie / SameSite restrictions that
+    # block cookies when the frontend and API are on different sites.
+    token = session_token
+    if not token and authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    if not token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+    session_token = token
 
     row = await conn.fetchrow(
         """
