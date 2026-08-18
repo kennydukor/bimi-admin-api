@@ -345,17 +345,26 @@ async def periods_present_in_live_table(
     if not table.period_key or not period_values:
         return []
     hits = []
-    where = " AND ".join(f'"{c}" = ${i+1}' for i, c in enumerate(table.period_key))
+    # IS NOT DISTINCT FROM so that a NULL period cell (e.g. empty month/quarter
+    # on an annual row) matches an existing NULL — plain `=` never matches NULL
+    # and, worse, an empty string sent to an integer column raises a DataError.
+    where = " AND ".join(
+        f'"{c}" IS NOT DISTINCT FROM ${i+1}' for i, c in enumerate(table.period_key)
+    )
     for pv in period_values:
-        args = [pv.get(c) for c in table.period_key]
-        # coerce ints where the column is integer, so "2024" matches 2024
         coerced = []
-        for c, a in zip(table.period_key, args):
+        for c in table.period_key:
+            a = pv.get(c)
             col = table.column(c)
-            if col and col.sql_type.startswith("int") and a not in (None, ""):
+            # Empty string -> NULL (annual rows leave month/quarter blank).
+            if a is None or (isinstance(a, str) and a.strip() == ""):
+                coerced.append(None)
+                continue
+            # Integer columns: cast "2024" -> 2024 so it binds and matches.
+            if col and col.sql_type.startswith("int"):
                 try:
                     a = int(a)
-                except ValueError:
+                except (ValueError, TypeError):
                     pass
             coerced.append(a)
         exists = await conn.fetchval(
